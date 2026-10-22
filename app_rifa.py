@@ -653,6 +653,19 @@ def api_pagar_apartado():
         conn.close()
         return jsonify({'success': False, 'message': f'El/los número(s) #{", ".join(no_apartados)} ya no están en estado apartado.'}), 400
 
+    # Validar coincidencia de teléfono con el registrado al apartar por seguridad
+    if tel:
+        tel_ingresado_clean = re.sub(r'\D', '', tel)
+        for r in rows:
+            tel_db_clean = re.sub(r'\D', '', r['comprador_telefono'] or '')
+            if len(tel_db_clean) >= 6 and len(tel_ingresado_clean) >= 6:
+                if tel_db_clean[-6:] != tel_ingresado_clean[-6:]:
+                    conn.close()
+                    return jsonify({
+                        'success': False,
+                        'message': f'Por seguridad, el teléfono indicado no coincide con el registrado al apartar el boleto #{r["numero_str"]}.'
+                    }), 403
+
     # Comprimir comprobante y pasarlo a Base64
     comprobante_filename = ''
     if file_obj and file_obj.filename:
