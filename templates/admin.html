@@ -464,6 +464,18 @@
             color: #FFFFFF;
         }
 
+        .num-tile.por_confirmar {
+            background: rgba(14, 165, 233, 0.18);
+            border-color: rgba(56, 189, 248, 0.45);
+            color: #38BDF8;
+        }
+        .num-tile.por_confirmar:hover {
+            background: rgba(14, 165, 233, 0.35);
+            border-color: #38BDF8;
+            color: #FFFFFF;
+            box-shadow: 0 0 16px rgba(14, 165, 233, 0.5);
+        }
+
         .num-tile.pagado {
             background: rgba(239, 68, 68, 0.18);
             border-color: rgba(239, 68, 68, 0.45);
@@ -607,6 +619,11 @@
             border-color: #10B981;
             color: #34D399;
         }
+        .state-radio-btn.active.por_conf {
+            background: rgba(14, 165, 233, 0.25);
+            border-color: #0EA5E9;
+            color: #38BDF8;
+        }
         .state-radio-btn.active.apart {
             background: rgba(245, 158, 11, 0.25);
             border-color: #F59E0B;
@@ -744,12 +761,21 @@
                 </div>
             </div>
 
+            <div class="kpi-card" style="--card-color: #0EA5E9;">
+                <div class="kpi-icon">🔵</div>
+                <div class="kpi-content">
+                    <div class="kpi-label">Por Confirmar</div>
+                    <div class="kpi-value" id="kpiPorConfirmar" style="color: #38BDF8;">0</div>
+                    <div class="kpi-sub">Pagos con comprobante</div>
+                </div>
+            </div>
+
             <div class="kpi-card" style="--card-color: var(--color-apartado);">
                 <div class="kpi-icon">🟡</div>
                 <div class="kpi-content">
                     <div class="kpi-label">Apartados</div>
                     <div class="kpi-value" id="kpiApartados" style="color: #FCD34D;">0</div>
-                    <div class="kpi-sub">Por confirmar pago</div>
+                    <div class="kpi-sub">Reservados sin pagar</div>
                 </div>
             </div>
 
@@ -789,12 +815,14 @@
             <div class="filter-tabs">
                 <button class="filter-tab active" data-filter="TODOS" onclick="setFiltro('TODOS', this)">Todos (500)</button>
                 <button class="filter-tab" data-filter="DISPONIBLE" onclick="setFiltro('DISPONIBLE', this)">🟢 Disponibles</button>
+                <button class="filter-tab" data-filter="POR_CONFIRMAR" onclick="setFiltro('POR_CONFIRMAR', this)">🔵 Por Confirmar Pago</button>
                 <button class="filter-tab" data-filter="APARTADO" onclick="setFiltro('APARTADO', this)">🟡 Apartados</button>
                 <button class="filter-tab" data-filter="PAGADO" onclick="setFiltro('PAGADO', this)">🔴 Pagados</button>
             </div>
 
             <div class="legend-box">
                 <div class="legend-item"><span class="legend-dot" style="background:#10B981;"></span> Disponible</div>
+                <div class="legend-item"><span class="legend-dot" style="background:#0EA5E9;"></span> Por Confirmar Pago</div>
                 <div class="legend-item"><span class="legend-dot" style="background:#F59E0B;"></span> Apartado</div>
                 <div class="legend-item"><span class="legend-dot" style="background:#EF4444;"></span> Pagado</div>
             </div>
@@ -823,6 +851,7 @@
                     <label class="form-label">Estado del Número</label>
                     <div class="state-radio-group">
                         <div class="state-radio-btn disp" id="radioDisp" onclick="seleccionarEstado('DISPONIBLE')">🟢 Disponible</div>
+                        <div class="state-radio-btn por_conf" id="radioPorConf" onclick="seleccionarEstado('POR_CONFIRMAR')">🔵 Por Confirmar</div>
                         <div class="state-radio-btn apart" id="radioApart" onclick="seleccionarEstado('APARTADO')">🟡 Apartado</div>
                         <div class="state-radio-btn pag" id="radioPag" onclick="seleccionarEstado('PAGADO')">🔴 Pagado</div>
                     </div>
@@ -1264,6 +1293,8 @@
 
         function renderEstadisticas(d) {
             document.getElementById('kpiLibres').innerText = d.libres;
+            const elPorConf = document.getElementById('kpiPorConfirmar');
+            if (elPorConf) elPorConf.innerText = d.por_confirmar || 0;
             document.getElementById('kpiApartados').innerText = d.apartados;
             document.getElementById('kpiPagados').innerText = d.pagados;
             document.getElementById('kpiRecaudado').innerText = `$${d.total_usd_recaudado.toFixed(2)}`;
@@ -1272,7 +1303,7 @@
             const perc = d.porcentaje_pagado;
             document.getElementById('progressPercentageText').innerText = `${perc}%`;
             document.getElementById('progressBarFill').style.width = `${Math.min(perc, 100)}%`;
-            document.getElementById('progressSummaryText').innerText = `${d.pagados} de ${d.total_numeros} números pagados (${d.apartados} apartados)`;
+            document.getElementById('progressSummaryText').innerText = `${d.pagados} de ${d.total_numeros} números pagados (${d.por_confirmar || 0} por confirmar, ${d.apartados} apartados)`;
         }
 
         function renderGrid() {
@@ -1311,10 +1342,11 @@
                 }
 
                 const buyerName = item.comprador_nombre ? item.comprador_nombre.split(' ')[0] : '';
+                const iconBadge = (item.estado === 'POR_CONFIRMAR' || item.comprobante_img) ? '💳 ' : '';
 
                 tile.innerHTML = `
                     <div class="num-tile-digits">${item.numero_str}</div>
-                    ${buyerName ? `<div class="num-tile-buyer">${escapeHtml(buyerName)}</div>` : ''}
+                    ${buyerName ? `<div class="num-tile-buyer" title="${escapeHtml(item.comprador_nombre)}">${iconBadge}${escapeHtml(buyerName)}</div>` : ''}
                 `;
 
                 tile.onclick = () => onTileClick(item);
@@ -1385,12 +1417,14 @@
         function seleccionarEstado(est) {
             estadoSeleccionado = est;
             document.getElementById('radioDisp').classList.toggle('active', est === 'DISPONIBLE');
+            const elPorConf = document.getElementById('radioPorConf');
+            if (elPorConf) elPorConf.classList.toggle('active', est === 'POR_CONFIRMAR');
             document.getElementById('radioApart').classList.toggle('active', est === 'APARTADO');
             document.getElementById('radioPag').classList.toggle('active', est === 'PAGADO');
 
             const inMonto = document.getElementById('modalInputMonto');
-            if (est === 'PAGADO' && (!inMonto.value || Number(inMonto.value) === 0)) {
-                inMonto.value = '5.00';
+            if ((est === 'PAGADO' || est === 'POR_CONFIRMAR') && (!inMonto.value || Number(inMonto.value) === 0)) {
+                inMonto.value = (configData.precio_usd || 5.0).toFixed(2);
             } else if (est === 'DISPONIBLE') {
                 inMonto.value = '0.00';
             }

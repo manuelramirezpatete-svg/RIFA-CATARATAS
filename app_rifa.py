@@ -196,6 +196,11 @@ def init_db():
                     VALUES (?, ?, 'DISPONIBLE')
                 """, (i, num_str))
 
+    cursor.execute("""
+        UPDATE numeros SET estado = 'POR_CONFIRMAR'
+        WHERE estado = 'APARTADO' AND (monto_pagado > 0 OR (comprobante_img IS NOT NULL AND comprobante_img != ''))
+    """)
+
     conn.commit()
     conn.close()
 
@@ -407,8 +412,8 @@ def api_apartar_publico():
         notas_guardar = 'Apartado online para pagar después'
         monto_pagar_guardar = 0.0
     else:
-        # PAGAR
-        estado_nuevo = 'APARTADO' # Queda en APARTADO hasta que el admin le dé confirmar pago
+        # PAGAR (Queda en POR_CONFIRMAR con distintivo azul para el admin)
+        estado_nuevo = 'POR_CONFIRMAR'
         ref_guardar = ref if ref else ('Comprobante adjunto' if comprobante_filename else 'Pago pendiente de verificación')
         notas_guardar = 'Pago móvil registrado con comprobante' if comprobante_filename else 'Pago móvil registrado'
         monto_pagar_guardar = precio_usd
@@ -490,7 +495,7 @@ def api_numero_detalle(num):
         data = request.json or {}
         ahora = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         estado = data.get('estado', 'APARTADO').upper()
-        if estado not in ['DISPONIBLE', 'APARTADO', 'PAGADO']:
+        if estado not in ['DISPONIBLE', 'POR_CONFIRMAR', 'APARTADO', 'PAGADO']:
             estado = 'APARTADO'
             
         monto = float(data.get('monto_pagado', 5.0 if estado == 'PAGADO' else 0.0))
@@ -605,22 +610,24 @@ def api_estadisticas():
     
     total = conn.execute("SELECT COUNT(*) FROM numeros").fetchone()[0]
     libres = conn.execute("SELECT COUNT(*) FROM numeros WHERE estado = 'DISPONIBLE'").fetchone()[0]
+    por_confirmar = conn.execute("SELECT COUNT(*) FROM numeros WHERE estado = 'POR_CONFIRMAR'").fetchone()[0]
     apartados = conn.execute("SELECT COUNT(*) FROM numeros WHERE estado = 'APARTADO'").fetchone()[0]
     pagados = conn.execute("SELECT COUNT(*) FROM numeros WHERE estado = 'PAGADO'").fetchone()[0]
     
     total_usd_recaudado = conn.execute("SELECT COALESCE(SUM(monto_pagado), 0.0) FROM numeros WHERE estado = 'PAGADO'").fetchone()[0]
     total_usd_esperado = total * precio_usd
     porcentaje_pagado = (pagados / total * 100.0) if total > 0 else 0.0
-    porcentaje_vendido = ((pagados + apartados) / total * 100.0) if total > 0 else 0.0
+    porcentaje_vendido = ((pagados + apartados + por_confirmar) / total * 100.0) if total > 0 else 0.0
     
     conn.close()
     return jsonify({
         'success': True,
         'total_numeros': total,
         'libres': libres,
+        'por_confirmar': por_confirmar,
         'apartados': apartados,
         'pagados': pagados,
-        'comprometidos': pagados + apartados,
+        'comprometidos': pagados + apartados + por_confirmar,
         'precio_usd': precio_usd,
         'tasa_bcv': tasa_bcv,
         'total_usd_recaudado': round(total_usd_recaudado, 2),
