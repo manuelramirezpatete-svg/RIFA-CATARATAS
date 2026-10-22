@@ -31,14 +31,24 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 CURRENT_PUBLIC_URL = ""
 
-PSYCOPG2_IMPORT_ERR = ""
+HAS_PG = False
+PG_MODULE = None
+PG_IMPORT_ERR = ""
+
 try:
-    import psycopg2
-    from psycopg2.extras import RealDictCursor
-    HAS_PSYCOPG2 = True
-except Exception as e:
-    HAS_PSYCOPG2 = False
-    PSYCOPG2_IMPORT_ERR = str(e)
+    import psycopg
+    from psycopg.rows import dict_row
+    HAS_PG = True
+    PG_MODULE = 'psycopg3'
+except Exception as e3:
+    try:
+        import psycopg2
+        from psycopg2.extras import RealDictCursor
+        HAS_PG = True
+        PG_MODULE = 'psycopg2'
+    except Exception as e2:
+        HAS_PG = False
+        PG_IMPORT_ERR = f"psycopg3: {e3} | psycopg2: {e2}"
 
 DATABASE_URL = os.environ.get('DATABASE_URL', 'postgresql://rifa_db_ft3b_user:qaWgM7FPwmoQ4q3NNkLDAFr3BHvGEJLc@dpg-dbd545a9lscs73e9tc1g-a.oregon-postgres.render.com/rifa_db_ft3b')
 
@@ -92,7 +102,10 @@ class DBWrapper:
 
     def cursor(self):
         if self.is_postgres:
-            return CursorWrapper(self.raw_conn.cursor(cursor_factory=RealDictCursor), is_postgres=True)
+            if PG_MODULE == 'psycopg3':
+                return CursorWrapper(self.raw_conn.cursor(), is_postgres=True)
+            else:
+                return CursorWrapper(self.raw_conn.cursor(cursor_factory=RealDictCursor), is_postgres=True)
         return CursorWrapper(self.raw_conn.cursor(), is_postgres=False)
 
     def commit(self):
@@ -105,7 +118,7 @@ DB_ERRORS = []
 
 def get_db():
     global DB_ERRORS
-    if HAS_PSYCOPG2:
+    if HAS_PG:
         candidates = []
         env_url = os.environ.get('DATABASE_URL')
         if env_url:
@@ -119,7 +132,10 @@ def get_db():
         for u in candidates:
             try:
                 url_to_connect = u.replace('postgres://', 'postgresql://', 1) if u.startswith('postgres://') else u
-                raw = psycopg2.connect(url_to_connect, connect_timeout=4)
+                if PG_MODULE == 'psycopg3':
+                    raw = psycopg.connect(url_to_connect, row_factory=dict_row, connect_timeout=4)
+                else:
+                    raw = psycopg2.connect(url_to_connect, connect_timeout=4)
                 return DBWrapper(raw, is_postgres=True)
             except Exception as e:
                 err_msg = f"{u[:45]}... -> {str(e)}"
@@ -311,8 +327,9 @@ def api_config():
     cfg_dict = dict(cfg) if cfg else {}
     cfg_dict['db_engine'] = 'PostgreSQL (RIFA-DB Permanente)' if conn.is_postgres else 'SQLite (Temporal)'
     cfg_dict['db_diag'] = {
-        'has_psycopg2': HAS_PSYCOPG2,
-        'import_err': PSYCOPG2_IMPORT_ERR,
+        'has_pg': HAS_PG,
+        'pg_module': PG_MODULE,
+        'import_err': PG_IMPORT_ERR,
         'errors': DB_ERRORS
     }
     conn.close()
