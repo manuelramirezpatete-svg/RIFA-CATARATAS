@@ -38,7 +38,7 @@ try:
 except ImportError:
     HAS_PSYCOPG2 = False
 
-DATABASE_URL = os.environ.get('DATABASE_URL', 'postgresql://rifa_db_ft3b_user:qaWgM7FPwmoQ4q3NNkLDAFr3BHvGEJLc@dpg-dbd545a9lscs73e9tc1g-a/rifa_db_ft3b')
+DATABASE_URL = os.environ.get('DATABASE_URL', 'postgresql://rifa_db_ft3b_user:qaWgM7FPwmoQ4q3NNkLDAFr3BHvGEJLc@dpg-dbd545a9lscs73e9tc1g-a.oregon-postgres.render.com/rifa_db_ft3b')
 
 class RowWrapper(dict):
     def __init__(self, mapping):
@@ -100,19 +100,24 @@ class DBWrapper:
         self.raw_conn.close()
 
 def get_db():
-    db_url = os.environ.get('DATABASE_URL')
-    if not db_url and os.environ.get('RENDER'):
-        db_url = DATABASE_URL
+    if HAS_PSYCOPG2:
+        candidates = []
+        env_url = os.environ.get('DATABASE_URL')
+        if env_url:
+            candidates.append(env_url)
+            if 'dpg-dbd545a9lscs73e9tc1g-a' in env_url and '.oregon-postgres.render.com' not in env_url:
+                candidates.append(env_url.replace('dpg-dbd545a9lscs73e9tc1g-a', 'dpg-dbd545a9lscs73e9tc1g-a.oregon-postgres.render.com'))
+        # Priorizar siempre la dirección permanente probada de PostgreSQL en Render
+        candidates.append('postgresql://rifa_db_ft3b_user:qaWgM7FPwmoQ4q3NNkLDAFr3BHvGEJLc@dpg-dbd545a9lscs73e9tc1g-a.oregon-postgres.render.com/rifa_db_ft3b')
+        candidates.append('postgresql://rifa_db_ft3b_user:qaWgM7FPwmoQ4q3NNkLDAFr3BHvGEJLc@dpg-dbd545a9lscs73e9tc1g-a/rifa_db_ft3b')
 
-    if HAS_PSYCOPG2 and db_url:
-        try:
-            url_to_connect = db_url
-            if url_to_connect.startswith('postgres://'):
-                url_to_connect = url_to_connect.replace('postgres://', 'postgresql://', 1)
-            raw = psycopg2.connect(url_to_connect)
-            return DBWrapper(raw, is_postgres=True)
-        except Exception as e:
-            print(f"[DB WARN] No se pudo conectar a PostgreSQL ({e}). Usando SQLite local.")
+        for u in candidates:
+            try:
+                url_to_connect = u.replace('postgres://', 'postgresql://', 1) if u.startswith('postgres://') else u
+                raw = psycopg2.connect(url_to_connect)
+                return DBWrapper(raw, is_postgres=True)
+            except Exception as e:
+                pass
 
     raw = sqlite3.connect(DB_PATH)
     raw.row_factory = sqlite3.Row
@@ -297,6 +302,7 @@ def api_config():
     
     cfg = conn.execute("SELECT * FROM configuracion WHERE id = 1").fetchone()
     cfg_dict = dict(cfg) if cfg else {}
+    cfg_dict['db_engine'] = 'PostgreSQL (RIFA-DB Permanente)' if conn.is_postgres else 'SQLite (Temporal)'
     conn.close()
     return jsonify(cfg_dict)
 
