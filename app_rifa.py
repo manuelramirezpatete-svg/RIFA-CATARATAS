@@ -31,10 +31,92 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 CURRENT_PUBLIC_URL = ""
 
+try:
+    import psycopg2
+    from psycopg2.extras import RealDictCursor
+    HAS_PSYCOPG2 = True
+except ImportError:
+    HAS_PSYCOPG2 = False
+
+DATABASE_URL = os.environ.get('DATABASE_URL', 'postgresql://rifa_db_ft3b_user:qaWgM7FPwmoQ4q3NNkLDAFr3BHvGEJLc@dpg-dbd545a9lscs73e9tc1g-a/rifa_db_ft3b')
+
+class RowWrapper(dict):
+    def __init__(self, mapping):
+        super().__init__(mapping)
+        self._values = list(mapping.values())
+
+    def __getitem__(self, key):
+        if isinstance(key, int):
+            return self._values[key]
+        return super().__getitem__(key)
+
+class CursorWrapper:
+    def __init__(self, cur, is_postgres=False):
+        self.cur = cur
+        self.is_postgres = is_postgres
+
+    def execute(self, query, params=None):
+        if self.is_postgres:
+            query = query.replace('?', '%s')
+        if params is None:
+            self.cur.execute(query)
+        else:
+            self.cur.execute(query, params)
+        return self
+
+    def fetchone(self):
+        row = self.cur.fetchone()
+        if row is None:
+            return None
+        return RowWrapper(dict(row)) if not isinstance(row, dict) else RowWrapper(row)
+
+    def fetchall(self):
+        rows = self.cur.fetchall()
+        return [RowWrapper(dict(r)) if not isinstance(r, dict) else RowWrapper(r) for r in rows]
+
+    @property
+    def description(self):
+        return self.cur.description
+
+class DBWrapper:
+    def __init__(self, raw_conn, is_postgres=False):
+        self.raw_conn = raw_conn
+        self.is_postgres = is_postgres
+
+    def execute(self, query, params=None):
+        cur = self.cursor()
+        cur.execute(query, params)
+        return cur
+
+    def cursor(self):
+        if self.is_postgres:
+            return CursorWrapper(self.raw_conn.cursor(cursor_factory=RealDictCursor), is_postgres=True)
+        return CursorWrapper(self.raw_conn.cursor(), is_postgres=False)
+
+    def commit(self):
+        self.raw_conn.commit()
+
+    def close(self):
+        self.raw_conn.close()
+
 def get_db():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    return conn
+    db_url = os.environ.get('DATABASE_URL')
+    if not db_url and os.environ.get('RENDER'):
+        db_url = DATABASE_URL
+
+    if HAS_PSYCOPG2 and db_url:
+        try:
+            url_to_connect = db_url
+            if url_to_connect.startswith('postgres://'):
+                url_to_connect = url_to_connect.replace('postgres://', 'postgresql://', 1)
+            raw = psycopg2.connect(url_to_connect)
+            return DBWrapper(raw, is_postgres=True)
+        except Exception as e:
+            print(f"[DB WARN] No se pudo conectar a PostgreSQL ({e}). Usando SQLite local.")
+
+    raw = sqlite3.connect(DB_PATH)
+    raw.row_factory = sqlite3.Row
+    return DBWrapper(raw, is_postgres=False)
 
 def init_db():
     conn = get_db()
@@ -57,7 +139,8 @@ def init_db():
     """)
     
     cursor.execute("SELECT COUNT(*) FROM configuracion")
-    if cursor.fetchone()[0] == 0:
+    count_cfg = cursor.fetchone()[0]
+    if count_cfg == 0:
         cursor.execute("""
             INSERT INTO configuracion (
                 id, titulo, causa, premio, precio_usd, tasa_bcv,
@@ -88,22 +171,30 @@ def init_db():
         )
     """)
 
-    # Verificar si columna comprobante_img existe
-    cursor.execute("PRAGMA table_info(numeros)")
-    cols = [r[1] for r in cursor.fetchall()]
-    if 'comprobante_img' not in cols:
-        cursor.execute("ALTER TABLE numeros ADD COLUMN comprobante_img TEXT DEFAULT ''")
+    if conn.is_postgres:
+        cursor.execute("ALTER TABLE numeros ADD COLUMN IF NOT EXISTS comprobante_img TEXT DEFAULT ''")
+    else:
+        cursor.execute("PRAGMA table_info(numeros)")
+        cols = [r[1] for r in cursor.fetchall()]
+        if 'comprobante_img' not in cols:
+            cursor.execute("ALTER TABLE numeros ADD COLUMN comprobante_img TEXT DEFAULT ''")
 
     cursor.execute("SELECT COUNT(*) FROM numeros")
     count = cursor.fetchone()[0]
     if count < 500:
-        cursor.execute("DELETE FROM numeros")
         for i in range(1, 501):
             num_str = f"{i:03d}"
-            cursor.execute("""
-                INSERT INTO numeros (numero, numero_str, estado)
-                VALUES (?, ?, 'DISPONIBLE')
-            """, (i, num_str))
+            if conn.is_postgres:
+                cursor.execute("""
+                    INSERT INTO numeros (numero, numero_str, estado)
+                    VALUES (%s, %s, 'DISPONIBLE')
+                    ON CONFLICT (numero) DO NOTHING
+                """, (i, num_str))
+            else:
+                cursor.execute("""
+                    INSERT OR IGNORE INTO numeros (numero, numero_str, estado)
+                    VALUES (?, ?, 'DISPONIBLE')
+                """, (i, num_str))
 
     conn.commit()
     conn.close()
