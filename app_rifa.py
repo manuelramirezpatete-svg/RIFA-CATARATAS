@@ -275,6 +275,27 @@ def admin_logout():
 def ver_comprobante(filename):
     return send_from_directory(UPLOAD_DIR, filename)
 
+@app.route('/comprobante/<int:num>')
+def route_ver_comprobante_numero(num):
+    conn = get_db()
+    row = conn.execute("SELECT comprobante_img FROM numeros WHERE numero = ?", (num,)).fetchone()
+    conn.close()
+    if not row or not row['comprobante_img']:
+        return "No hay comprobante registrado para este número", 404
+
+    comp = row['comprobante_img']
+    if comp.startswith('data:'):
+        try:
+            import base64
+            header, b64data = comp.split(',', 1)
+            mime = header.split(';')[0].replace('data:', '')
+            img_data = base64.b64decode(b64data)
+            return Response(img_data, mimetype=mime)
+        except Exception as e:
+            return f"Error al procesar la imagen: {e}", 500
+    else:
+        return send_from_directory(UPLOAD_DIR, comp)
+
 # --- Rutas de API ---
 
 @app.route('/api/enlace_publico')
@@ -548,6 +569,174 @@ def api_apartar_publico():
         'total_usd': monto_total_usd,
         'total_bs': monto_total_bs,
         'comprobante_img': comprobante_filename,
+        'whatsapp_url': whatsapp_url
+    })
+
+@app.route('/api/consultar_apartados', methods=['GET'])
+def api_consultar_apartados():
+    q = request.args.get('q', '').strip()
+    if not q:
+        return jsonify({'success': False, 'message': 'Indica tu número de teléfono o número de boleto.'}), 400
+
+    q_clean = re.sub(r'\D', '', q)
+    conn = get_db()
+    rows = conn.execute("SELECT numero, numero_str, comprador_nombre, comprador_telefono, notas, fecha_registro FROM numeros WHERE estado = 'APARTADO' ORDER BY numero ASC").fetchall()
+    
+    cfg = conn.execute("SELECT * FROM configuracion WHERE id = 1").fetchone()
+    precio_usd = cfg['precio_usd'] if cfg else 5.0
+    tasa_bcv = cfg['tasa_bcv'] if cfg else 45.0
+    conn.close()
+
+    coincidencias = []
+    for r in rows:
+        tel_db = re.sub(r'\D', '', r['comprador_telefono'] or '')
+        es_match = False
+        if q_clean and len(q_clean) >= 4 and q_clean in tel_db:
+            es_match = True
+        elif q == str(r['numero']) or q == r['numero_str']:
+            es_match = True
+        elif q.lower() in (r['comprador_nombre'] or '').lower():
+            es_match = True
+
+        if es_match:
+            coincidencias.append({
+                'numero': r['numero'],
+                'numero_str': r['numero_str'],
+                'comprador_nombre': r['comprador_nombre'],
+                'comprador_telefono': r['comprador_telefono']
+            })
+
+    total_usd = len(coincidencias) * precio_usd
+    total_bs = total_usd * tasa_bcv
+
+    return jsonify({
+        'success': True,
+        'coincidencias': coincidencias,
+        'total_usd': total_usd,
+        'total_bs': total_bs,
+        'precio_usd': precio_usd,
+        'tasa_bcv': tasa_bcv
+    })
+
+@app.route('/api/pagar_apartado', methods=['POST'])
+def api_pagar_apartado():
+    raw_nums = request.form.get('numeros', '')
+    tel = request.form.get('telefono', '').strip()
+    ref = request.form.get('referencia', '').strip()
+    metodo = request.form.get('metodo_pago', 'Pago Móvil')
+    file_obj = request.files.get('comprobante')
+
+    # Convertir números
+    nums = []
+    if ',' in raw_nums:
+        for x in raw_nums.split(','):
+            x = x.strip()
+            if x.isdigit():
+                nums.append(int(x))
+    elif raw_nums.strip().isdigit():
+        nums.append(int(raw_nums.strip()))
+
+    if not nums:
+        return jsonify({'success': False, 'message': 'Por favor indica al menos un número de boleto.'}), 400
+
+    conn = get_db()
+    placeholders = ','.join(['?'] * len(nums))
+    rows = conn.execute(f"SELECT * FROM numeros WHERE numero IN ({placeholders})", nums).fetchall()
+    
+    if not rows:
+        conn.close()
+        return jsonify({'success': False, 'message': 'No se encontraron los números indicados.'}), 404
+
+    # Verificar que todos estén en APARTADO
+    no_apartados = [r['numero_str'] for r in rows if r['estado'] != 'APARTADO']
+    if no_apartados:
+        conn.close()
+        return jsonify({'success': False, 'message': f'El/los número(s) #{", ".join(no_apartados)} ya no están en estado apartado.'}), 400
+
+    # Comprimir comprobante y pasarlo a Base64
+    comprobante_filename = ''
+    if file_obj and file_obj.filename:
+        ext = os.path.splitext(file_obj.filename)[1].lower()
+        if ext in ['.png', '.jpg', '.jpeg', '.webp', '.heic']:
+            import base64
+            try:
+                from PIL import Image
+                img = Image.open(file_obj.stream)
+                img.thumbnail((1200, 1200), Image.Resampling.LANCZOS)
+                buf = io.BytesIO()
+                fmt = 'JPEG' if ext in ['.jpg', '.jpeg'] else 'PNG'
+                if fmt == 'JPEG':
+                    img = img.convert('RGB')
+                img.save(buf, format=fmt, quality=80)
+                b64 = base64.b64encode(buf.getvalue()).decode('utf-8')
+                mime = 'image/jpeg' if fmt == 'JPEG' else 'image/png'
+                comprobante_filename = f"data:{mime};base64,{b64}"
+            except Exception as e:
+                file_obj.seek(0)
+                raw_bytes = file_obj.read()
+                b64 = base64.b64encode(raw_bytes).decode('utf-8')
+                mime = 'image/jpeg' if ext in ['.jpg', '.jpeg'] else ('image/png' if ext == '.png' else 'image/webp')
+                comprobante_filename = f"data:{mime};base64,{b64}"
+        elif ext == '.pdf':
+            import base64
+            file_obj.seek(0)
+            b64 = base64.b64encode(file_obj.read()).decode('utf-8')
+            comprobante_filename = f"data:application/pdf;base64,{b64}"
+
+    cfg = conn.execute("SELECT * FROM configuracion WHERE id = 1").fetchone()
+    precio_usd = cfg['precio_usd'] if cfg else 5.0
+    tasa_bcv = cfg['tasa_bcv'] if cfg else 45.0
+    tel_organizador = cfg['telefono_pago'] if cfg else '0424-9718479'
+
+    ahora = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    ref_guardar = ref if ref else ('Comprobante adjunto' if comprobante_filename else 'Pago de apartado reportado')
+
+    for r in rows:
+        conn.execute("""
+            UPDATE numeros SET
+                estado = 'POR_CONFIRMAR',
+                metodo_pago = ?,
+                referencia_pago = ?,
+                monto_pagado = ?,
+                comprobante_img = ?,
+                notas = 'Pago de número apartado reportado online por el cliente',
+                fecha_actualizacion = ?
+            WHERE numero = ?
+        """, (metodo, ref_guardar, precio_usd, comprobante_filename, ahora, r['numero']))
+
+    conn.commit()
+    conn.close()
+
+    nums_str_list = [r['numero_str'] for r in rows]
+    nums_formatted = ', '.join(nums_str_list)
+    nombre = rows[0]['comprador_nombre'] or 'Comprador'
+    monto_total_usd = len(nums) * precio_usd
+    monto_total_bs = monto_total_usd * tasa_bcv
+
+    tel_clean = re.sub(r'\D', '', tel_organizador)
+    if tel_clean.startswith('0'):
+        tel_clean = '58' + tel_clean[1:]
+    elif not tel_clean.startswith('58') and len(tel_clean) == 10:
+        tel_clean = '58' + tel_clean
+
+    mensaje_wa = (
+        f"¡Hola! 👋 Acabo de realizar el pago de mi(s) número(s) apartado(s): *{nums_formatted}* "
+        f"para la *Gran Rifa Benéfica* del Aire Acondicionado 12.000 BTU.\n\n"
+        f"👤 *Comprador:* {nombre}\n"
+        f"📱 *Teléfono:* {tel or rows[0]['comprador_telefono']}\n"
+        f"🎟️ *Cantidad:* {len(nums)} número(s)\n"
+        f"💵 *Monto:* ${monto_total_usd:.2f} USD (Bs. {monto_total_bs:,.2f})\n"
+        f"{f'💳 *Referencia:* {ref}\n' if ref else ''}"
+        f"\nAquí le adjunto la captura de mi comprobante de pago móvil. ¡Muchísimas gracias! 🙏✨"
+    )
+    whatsapp_url = f"https://api.whatsapp.com/send?phone={tel_clean}&text={quote(mensaje_wa)}"
+
+    return jsonify({
+        'success': True,
+        'message': f'¡Pago de los boletos #{nums_formatted} registrado con éxito!',
+        'numeros': nums_str_list,
+        'total_usd': monto_total_usd,
+        'total_bs': monto_total_bs,
         'whatsapp_url': whatsapp_url
     })
 

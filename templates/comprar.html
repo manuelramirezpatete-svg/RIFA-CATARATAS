@@ -326,6 +326,28 @@
             transform: scale(1.08);
         }
 
+        .num-btn.apartado {
+            background: rgba(245, 158, 11, 0.16);
+            border-color: rgba(245, 158, 11, 0.45);
+            color: #FCD34D;
+            cursor: pointer;
+        }
+
+        .num-btn.apartado::after {
+            content: '⏳';
+            font-size: 8px;
+            position: absolute;
+            top: 2px;
+            right: 3px;
+        }
+
+        .num-btn.apartado:hover, .num-btn.apartado:active {
+            background: rgba(245, 158, 11, 0.32);
+            border-color: #F59E0B;
+            transform: scale(1.08);
+            box-shadow: 0 0 10px rgba(245, 158, 11, 0.4);
+        }
+
         .num-btn.ocupado {
             background: rgba(30, 41, 59, 0.5);
             border-color: rgba(255, 255, 255, 0.05);
@@ -769,6 +791,12 @@
             <div class="spec-item">📅 <strong>5 de Noviembre</strong></div>
             <div class="spec-item">🎰 <strong>Lotería del Zulia (7:00 PM)</strong></div>
         </div>
+
+        <div style="margin-top: 16px; display: flex; justify-content: center;">
+            <button type="button" onclick="abrirModalPagarApartado()" style="background: rgba(14, 165, 233, 0.16); border: 1px solid var(--accent-cyan); color: #38BDF8; font-family: 'Outfit', sans-serif; font-size: 13px; font-weight: 700; padding: 10px 18px; border-radius: var(--radius-full); cursor: pointer; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 4px 14px rgba(14, 165, 233, 0.25); transition: all 0.2s;" onmouseover="this.style.background='rgba(14, 165, 233, 0.28)'" onmouseout="this.style.background='rgba(14, 165, 233, 0.16)'">
+                <span>💳</span> ¿Ya apartaste tu número? <strong>Reporta tu pago aquí</strong> ➜
+            </button>
+        </div>
     </header>
 
     <!-- Main Container -->
@@ -781,7 +809,7 @@
                     <span>🎟️</span> Elige tu(s) Número(s)
                 </h2>
                 <div style="font-size: 12px; color: var(--text-muted);">
-                    <span style="color: #34D399; font-weight:700;">🟢 Disponible</span> | <span style="color:#64748B;">🔒 Ocupado</span>
+                    <span style="color: #34D399; font-weight:700;">🟢 Disponible</span> | <span style="color:#FCD34D; font-weight:700;">🟡 Apartado</span> | <span style="color:#64748B;">🔒 Vendido</span>
                 </div>
             </div>
 
@@ -970,6 +998,131 @@
         </div>
     </div>
 
+    <!-- Modal Reportar Pago de Apartado -->
+    <div class="modal-overlay" id="modalPagarApartado" onclick="if(event.target===this) cerrarModalPagarApartado()">
+        <div class="modal-card">
+            <div class="modal-header">
+                <div>
+                    <span style="font-size: 11px; font-weight: 700; color: var(--accent-gold); text-transform: uppercase;">Boletos Reservados</span>
+                    <h3 style="font-size: 18px; color: #FFFFFF;">💳 Pagar mi Número Apartado</h3>
+                </div>
+                <button style="background:transparent; border:none; color:var(--text-muted); font-size:18px; cursor:pointer;" onclick="cerrarModalPagarApartado()">✕</button>
+            </div>
+
+            <div class="modal-body" id="pagarApartadoBody">
+                <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 14px;">
+                    Si apartaste boletos anteriormente, búscalos aquí con tu <strong>número de teléfono</strong> o <strong>número de boleto</strong> para adjuntar tu comprobante de pago:
+                </p>
+
+                <!-- Buscador de Apartados -->
+                <div class="form-group" style="margin-bottom: 14px;">
+                    <label class="form-label">Tu Teléfono o Número de Boleto *</label>
+                    <div style="display: flex; gap: 8px;">
+                        <input type="text" id="inputBuscarApartado" class="form-input" placeholder="Ej: 0424653197 o 001" style="font-family: 'JetBrains Mono', monospace;" onkeydown="if(event.key==='Enter') buscarApartadosCliente()">
+                        <button type="button" class="btn-checkout" style="padding: 0 16px; font-size: 13px; white-space: nowrap;" onclick="buscarApartadosCliente()">
+                            🔍 Buscar
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Resultado de búsqueda -->
+                <div id="resultadoApartadosBox" style="display: none;">
+                    <div style="background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.35); border-radius: 8px; padding: 12px; margin-bottom: 14px;">
+                        <div style="font-size: 12px; color: var(--accent-gold-light); font-weight: 700; margin-bottom: 4px;">
+                            🎟️ Boletos Encontrados a tu Nombre:
+                        </div>
+                        <div id="apartadosTagsList" style="display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0;"></div>
+                        <div style="font-size: 13px; font-weight: 700; color: #FFFFFF;" id="apartadosTotalText"></div>
+                    </div>
+
+                    <!-- Datos de Pago Móvil -->
+                    <div class="pm-card-box">
+                        <div class="pm-card-header">
+                            <span style="font-size: 12px; font-weight: 800; color: var(--accent-cyan);">📲 DATOS DE PAGO MÓVIL:</span>
+                            <span style="font-size: 10px; color: var(--text-muted);">Toca [Copiar]</span>
+                        </div>
+
+                        <div class="pm-row">
+                            <span class="pm-label">Banco:</span>
+                            <div class="pm-val-wrap">
+                                <span class="pm-val" id="pmBancoApartado">BANCAMIGA</span>
+                                <button type="button" class="btn-mini-copy" onclick="copiarDato(document.getElementById('pmBancoApartado').innerText, 'Banco copiado')">📋 Copiar</button>
+                            </div>
+                        </div>
+
+                        <div class="pm-row">
+                            <span class="pm-label">Teléfono:</span>
+                            <div class="pm-val-wrap">
+                                <span class="pm-val" id="pmTelefonoApartado">04249718479</span>
+                                <button type="button" class="btn-mini-copy" onclick="copiarDato(document.getElementById('pmTelefonoApartado').innerText, 'Teléfono copiado')">📋 Copiar</button>
+                            </div>
+                        </div>
+
+                        <div class="pm-row">
+                            <span class="pm-label">Cédula:</span>
+                            <div class="pm-val-wrap">
+                                <span class="pm-val" id="pmCedulaApartado">24522792</span>
+                                <button type="button" class="btn-mini-copy" onclick="copiarDato(document.getElementById('pmCedulaApartado').innerText, 'Cédula copiada')">📋 Copiar</button>
+                            </div>
+                        </div>
+
+                        <div class="pm-row">
+                            <span class="pm-label">Total en Bs:</span>
+                            <div class="pm-val-wrap">
+                                <span class="pm-val" id="pmMontoBsApartado" style="color: var(--accent-emerald-light);">Bs. --</span>
+                                <button type="button" class="btn-mini-copy" onclick="copiarDato(document.getElementById('pmMontoBsApartado').innerText.replace('Bs. ','').trim(), 'Monto copiado')">📋 Copiar Bs.</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Subir Captura de Pago -->
+                    <div class="form-group" style="margin-top: 14px;">
+                        <label class="form-label">Subir Comprobante de Pago (Captura)</label>
+                        <input type="file" id="inputApartadoComprobanteFile" accept="image/*" style="display:none;" onchange="onArchivoApartadoSeleccionado(this)">
+                        
+                        <div class="upload-dropzone" id="dropzoneApartadoBox" onclick="document.getElementById('inputApartadoComprobanteFile').click()">
+                            <div style="font-size: 26px; margin-bottom: 4px;">📷 📎</div>
+                            <div style="font-size: 13px; font-weight: 700; color: #FFFFFF;">Toca aquí para subir la captura de tu pago</div>
+                            <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">Formatos: JPG, PNG o captura de pantalla</div>
+                        </div>
+
+                        <div class="upload-preview-box" id="previewApartadoBox" style="display: none;">
+                            <img src="" alt="Comprobante" class="upload-preview-img" id="previewApartadoImg">
+                            <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                <div style="font-size: 12px; font-weight: 700; color: #FFFFFF;" id="previewApartadoFileName">comprobante.jpg</div>
+                                <div style="font-size: 10px; color: var(--accent-emerald-light);">✓ Archivo listo para enviar</div>
+                            </div>
+                            <button type="button" class="btn-remove-file" onclick="removerArchivoApartado()">✕ Quitar</button>
+                        </div>
+                    </div>
+
+                    <!-- Referencia de Pago -->
+                    <div class="form-group">
+                        <label class="form-label">Referencia Bancaria (Opcional si subes captura)</label>
+                        <input type="text" id="inputApartadoReferencia" class="form-input" placeholder="Últimos 4 o 6 dígitos de la referencia">
+                    </div>
+
+                    <button class="btn-action-main green" id="btnEnviarPagoApartado" onclick="procesarPagoApartado()">
+                        <span>🚀</span> Enviar Comprobante y Reportar Pago
+                    </button>
+                </div>
+            </div>
+
+            <!-- Pantalla de Éxito para Apartado -->
+            <div class="success-box" id="modalApartadoSuccessBox" style="display: none;">
+                <div style="font-size: 52px; margin-bottom: 10px;">🎉 🙏 ✨</div>
+                <h3 style="font-size: 20px; color: #FFFFFF; margin-bottom: 8px;">¡Pago Reportado con Éxito!</h3>
+                <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;" id="apartadoSuccessDesc">
+                    Tu comprobante ha sido recibido. El organizador verificará los datos para confirmar tu número 100%.
+                </p>
+                <div id="btnWhatsAppApartadoSuccessContainer" style="margin-bottom: 12px;"></div>
+                <button type="button" class="btn-checkout" style="width: 100%; justify-content: center; background: rgba(255, 255, 255, 0.08); border: 1px solid var(--border); color: #FFFFFF; font-weight: 700;" onclick="location.reload()">
+                    ✅ Entendido / Volver al Inicio
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Toast Notification -->
     <div class="toast" id="toastMsg"></div>
 
@@ -1029,8 +1182,14 @@
                 const isSelected = seleccionados.has(item.numero);
 
                 if (isOcupado) {
-                    btn.className = 'num-btn ocupado';
-                    btn.title = `Número #${item.numero_str} ya reservado`;
+                    if (item.estado === 'APARTADO') {
+                        btn.className = 'num-btn apartado';
+                        btn.title = `Número #${item.numero_str} apartado. Toca si es tuyo para reportar pago.`;
+                        btn.onclick = () => abrirModalPagarApartadoConNumero(item.numero_str);
+                    } else {
+                        btn.className = 'num-btn ocupado';
+                        btn.title = `Número #${item.numero_str} ya vendido`;
+                    }
                 } else {
                     btn.className = `num-btn disponible ${isSelected ? 'seleccionado' : ''}`;
                     btn.onclick = () => toggleNumero(item.numero);
@@ -1252,6 +1411,155 @@
             t.innerText = msg;
             t.style.opacity = '1';
             setTimeout(() => { t.style.opacity = '0'; }, 2600);
+        }
+
+        // --- Funcionalidad Pagar Número Apartado ---
+        let apartadosEncontrados = [];
+        let archivoComprobanteApartado = null;
+
+        function abrirModalPagarApartado() {
+            document.getElementById('pagarApartadoBody').style.display = 'block';
+            document.getElementById('modalApartadoSuccessBox').style.display = 'none';
+            document.getElementById('resultadoApartadosBox').style.display = 'none';
+            document.getElementById('inputBuscarApartado').value = '';
+            removerArchivoApartado();
+            document.getElementById('modalPagarApartado').style.display = 'flex';
+        }
+
+        function abrirModalPagarApartadoConNumero(numStr) {
+            abrirModalPagarApartado();
+            document.getElementById('inputBuscarApartado').value = numStr;
+            buscarApartadosCliente();
+        }
+
+        function cerrarModalPagarApartado() {
+            document.getElementById('modalPagarApartado').style.display = 'none';
+        }
+
+        async function buscarApartadosCliente() {
+            const q = (document.getElementById('inputBuscarApartado').value || '').trim();
+            if (!q) {
+                showToast("Ingresa tu teléfono o número de boleto.");
+                return;
+            }
+
+            try {
+                const res = await fetch(`/api/consultar_apartados?q=${encodeURIComponent(q)}`);
+                const d = await res.json();
+                if (d.success && d.coincidencias && d.coincidencias.length > 0) {
+                    apartadosEncontrados = d.coincidencias;
+                    const containerTags = document.getElementById('apartadosTagsList');
+                    containerTags.innerHTML = '';
+                    apartadosEncontrados.forEach(item => {
+                        const tag = document.createElement('span');
+                        tag.style.cssText = "background: #F59E0B; color: #000; font-family: 'JetBrains Mono'; font-weight: 800; font-size: 13px; padding: 3px 8px; border-radius: 4px;";
+                        tag.innerText = `#${item.numero_str}`;
+                        containerTags.appendChild(tag);
+                    });
+
+                    const totalBsFormatted = Number(d.total_bs).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                    document.getElementById('apartadosTotalText').innerText = `Total a Pagar: $${d.total_usd.toFixed(2)} USD (Bs. ${totalBsFormatted})`;
+
+                    document.getElementById('pmBancoApartado').innerText = configData.banco || 'BANCAMIGA';
+                    document.getElementById('pmTelefonoApartado').innerText = (configData.telefono_pago || '0424-9718479').replace(/\D/g, '');
+                    document.getElementById('pmCedulaApartado').innerText = (configData.cedula_pago || '24.522.792').replace(/\D/g, '');
+                    document.getElementById('pmMontoBsApartado').innerText = `Bs. ${totalBsFormatted}`;
+
+                    document.getElementById('resultadoApartadosBox').style.display = 'block';
+                } else {
+                    showToast("No se encontraron números apartados con esos datos.");
+                    document.getElementById('resultadoApartadosBox').style.display = 'none';
+                }
+            } catch(err) {
+                console.error(err);
+                showToast("Error al buscar boletos apartados.");
+            }
+        }
+
+        function onArchivoApartadoSeleccionado(input) {
+            if (input.files && input.files[0]) {
+                archivoComprobanteApartado = input.files[0];
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('previewApartadoImg').src = e.target.result;
+                    document.getElementById('previewApartadoFileName').innerText = archivoComprobanteApartado.name;
+                    document.getElementById('dropzoneApartadoBox').style.display = 'none';
+                    document.getElementById('previewApartadoBox').style.display = 'flex';
+                };
+                reader.readAsDataURL(archivoComprobanteApartado);
+            }
+        }
+
+        function removerArchivoApartado() {
+            archivoComprobanteApartado = null;
+            const fileInput = document.getElementById('inputApartadoComprobanteFile');
+            if (fileInput) fileInput.value = '';
+            const prev = document.getElementById('previewApartadoBox');
+            if (prev) prev.style.display = 'none';
+            const drop = document.getElementById('dropzoneApartadoBox');
+            if (drop) drop.style.display = 'block';
+        }
+
+        async function procesarPagoApartado() {
+            if (!apartadosEncontrados || apartadosEncontrados.length === 0) {
+                showToast("Primero busca y selecciona tus números apartados.");
+                return;
+            }
+
+            const ref = (document.getElementById('inputApartadoReferencia').value || '').trim();
+            if (!archivoComprobanteApartado && !ref) {
+                showToast("Por favor adjunta la captura o indica la referencia.");
+                return;
+            }
+
+            const btn = document.getElementById('btnEnviarPagoApartado');
+            btn.disabled = true;
+            btn.innerHTML = '<span>⏳</span> Enviando comprobante...';
+
+            const numsList = apartadosEncontrados.map(x => x.numero).join(',');
+            const fd = new FormData();
+            fd.append('numeros', numsList);
+            fd.append('telefono', apartadosEncontrados[0].comprador_telefono || '');
+            fd.append('referencia', ref);
+            fd.append('metodo_pago', 'Pago Móvil');
+            if (archivoComprobanteApartado) {
+                fd.append('comprobante', archivoComprobanteApartado);
+            }
+
+            try {
+                const res = await fetch('/api/pagar_apartado', {
+                    method: 'POST',
+                    body: fd
+                });
+                const d = await res.json();
+                if (d.success) {
+                    confetti({ particleCount: 70, spread: 60, origin: { y: 0.6 } });
+                    document.getElementById('pagarApartadoBody').style.display = 'none';
+                    document.getElementById('modalApartadoSuccessBox').style.display = 'block';
+                    document.getElementById('apartadoSuccessDesc').innerText = `Tu pago de ${d.numeros.length} boleto(s) (#${d.numeros.join(', #')}) ha sido registrado y está listo para ser confirmado por el organizador.`;
+
+                    const waContainer = document.getElementById('btnWhatsAppApartadoSuccessContainer');
+                    waContainer.innerHTML = '';
+                    if (d.whatsapp_url) {
+                        const btnWa = document.createElement('button');
+                        btnWa.type = 'button';
+                        btnWa.className = 'btn-action-main green';
+                        btnWa.style.cssText = 'width: 100%; justify-content: center; margin-bottom: 8px;';
+                        btnWa.innerHTML = '<span>📲</span> Abrir WhatsApp (Opcional)';
+                        btnWa.onclick = () => window.open(d.whatsapp_url, '_blank');
+                        waContainer.appendChild(btnWa);
+                    }
+                } else {
+                    alert(d.message || 'Error al procesar pago');
+                    btn.disabled = false;
+                    btn.innerHTML = '<span>🚀</span> Enviar Comprobante y Reportar Pago';
+                }
+            } catch(err) {
+                console.error(err);
+                alert('Error de conexión al enviar el comprobante.');
+                btn.disabled = false;
+                btn.innerHTML = '<span>🚀</span> Enviar Comprobante y Reportar Pago';
+            }
         }
     </script>
 </body>
