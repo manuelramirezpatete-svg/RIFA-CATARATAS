@@ -31,12 +31,14 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 CURRENT_PUBLIC_URL = ""
 
+PSYCOPG2_IMPORT_ERR = ""
 try:
     import psycopg2
     from psycopg2.extras import RealDictCursor
     HAS_PSYCOPG2 = True
-except ImportError:
+except Exception as e:
     HAS_PSYCOPG2 = False
+    PSYCOPG2_IMPORT_ERR = str(e)
 
 DATABASE_URL = os.environ.get('DATABASE_URL', 'postgresql://rifa_db_ft3b_user:qaWgM7FPwmoQ4q3NNkLDAFr3BHvGEJLc@dpg-dbd545a9lscs73e9tc1g-a.oregon-postgres.render.com/rifa_db_ft3b')
 
@@ -99,7 +101,10 @@ class DBWrapper:
     def close(self):
         self.raw_conn.close()
 
+DB_ERRORS = []
+
 def get_db():
+    global DB_ERRORS
     if HAS_PSYCOPG2:
         candidates = []
         env_url = os.environ.get('DATABASE_URL')
@@ -114,10 +119,12 @@ def get_db():
         for u in candidates:
             try:
                 url_to_connect = u.replace('postgres://', 'postgresql://', 1) if u.startswith('postgres://') else u
-                raw = psycopg2.connect(url_to_connect)
+                raw = psycopg2.connect(url_to_connect, connect_timeout=4)
                 return DBWrapper(raw, is_postgres=True)
             except Exception as e:
-                pass
+                err_msg = f"{u[:45]}... -> {str(e)}"
+                if err_msg not in DB_ERRORS:
+                    DB_ERRORS.append(err_msg)
 
     raw = sqlite3.connect(DB_PATH)
     raw.row_factory = sqlite3.Row
@@ -303,6 +310,11 @@ def api_config():
     cfg = conn.execute("SELECT * FROM configuracion WHERE id = 1").fetchone()
     cfg_dict = dict(cfg) if cfg else {}
     cfg_dict['db_engine'] = 'PostgreSQL (RIFA-DB Permanente)' if conn.is_postgres else 'SQLite (Temporal)'
+    cfg_dict['db_diag'] = {
+        'has_psycopg2': HAS_PSYCOPG2,
+        'import_err': PSYCOPG2_IMPORT_ERR,
+        'errors': DB_ERRORS
+    }
     conn.close()
     return jsonify(cfg_dict)
 
