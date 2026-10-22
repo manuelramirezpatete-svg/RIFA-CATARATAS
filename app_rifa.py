@@ -142,6 +142,20 @@ def api_config():
     conn = get_db()
     if request.method == 'POST':
         data = request.json or {}
+        cfg = conn.execute("SELECT * FROM configuracion WHERE id = 1").fetchone()
+        cfg_dict = dict(cfg) if cfg else {}
+
+        titulo = data.get('titulo', cfg_dict.get('titulo', 'Gran Rifa Benéfica'))
+        causa = data.get('causa', cfg_dict.get('causa', 'A beneficio de cirugía de cataratas'))
+        premio = data.get('premio', cfg_dict.get('premio', 'Aire Acondicionado de Ventana 12.000 BTU'))
+        precio_usd = float(data.get('precio_usd', cfg_dict.get('precio_usd', 5.0)))
+        tasa_bcv = float(data.get('tasa_bcv', cfg_dict.get('tasa_bcv', 45.0)))
+        fecha_sorteo = data.get('fecha_sorteo', cfg_dict.get('fecha_sorteo', '5 de Noviembre 2026'))
+        loteria = data.get('loteria', cfg_dict.get('loteria', 'Lotería del Zulia (7:00 PM)'))
+        banco = data.get('banco', cfg_dict.get('banco', 'BANCAMIGA'))
+        telefono_pago = data.get('telefono_pago', cfg_dict.get('telefono_pago', '0424-9718479'))
+        cedula_pago = data.get('cedula_pago', cfg_dict.get('cedula_pago', '24.522.792'))
+
         conn.execute("""
             UPDATE configuracion SET
                 titulo = ?, causa = ?, premio = ?, precio_usd = ?,
@@ -149,20 +163,12 @@ def api_config():
                 banco = ?, telefono_pago = ?, cedula_pago = ?
             WHERE id = 1
         """, (
-            data.get('titulo', 'Gran Rifa Benéfica'),
-            data.get('causa', 'A beneficio de cirugía de cataratas'),
-            data.get('premio', 'Aire Acondicionado de Ventana 12.000 BTU'),
-            float(data.get('precio_usd', 5.0)),
-            float(data.get('tasa_bcv', 45.0)),
-            data.get('fecha_sorteo', '5 de Noviembre 2026'),
-            data.get('loteria', 'Lotería del Zulia (7:00 PM)'),
-            data.get('banco', 'BANCAMIGA'),
-            data.get('telefono_pago', '0424-9718479'),
-            data.get('cedula_pago', '24.522.792')
+            titulo, causa, premio, precio_usd, tasa_bcv,
+            fecha_sorteo, loteria, banco, telefono_pago, cedula_pago
         ))
         conn.commit()
         conn.close()
-        return jsonify({'success': True, 'message': 'Configuración guardada'})
+        return jsonify({'success': True, 'message': 'Configuración guardada', 'tasa_bcv': tasa_bcv, 'precio_usd': precio_usd})
     
     cfg = conn.execute("SELECT * FROM configuracion WHERE id = 1").fetchone()
     cfg_dict = dict(cfg) if cfg else {}
