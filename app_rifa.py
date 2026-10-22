@@ -1105,22 +1105,13 @@ def generar_pdf_boleto_bytes(row, cfg, host_url):
 
     # Desprendible QR Derecho
     c.setFillColor(colors.HexColor('#FFFFFF'))
-    c.roundRect(430, 115, 120, 120, 6, fill=1, stroke=0)
-    c.drawImage(qr_reader, 435, 120, width=110, height=110)
-
-    c.setFillColor(colors.HexColor('#F59E0B'))
-    c.setFont('Helvetica-Bold', 9)
-    c.drawCentredString(490, 250, 'VALIDACION QR')
-
-    c.setFillColor(colors.HexColor('#94A3B8'))
-    c.setFont('Helvetica', 8)
-    c.drawCentredString(490, 95, 'Escanea para verificar')
-    c.drawCentredString(490, 82, 'autenticidad en vivo')
+    c.roundRect(430, 95, 120, 120, 6, fill=1, stroke=0)
+    c.drawImage(qr_reader, 435, 100, width=110, height=110)
 
     c.setFillColor(colors.HexColor('#34D399'))
-    c.setFont('Helvetica-Bold', 9)
-    c.drawCentredString(490, 50, 'SELLO OFICIAL')
-    c.drawCentredString(490, 36, 'NO FALSIFICABLE')
+    c.setFont('Helvetica-Bold', 10)
+    c.drawCentredString(490, 55, 'SELLO OFICIAL')
+    c.drawCentredString(490, 40, 'PAGO VERIFICADO')
 
     c.save()
     buf.seek(0)
