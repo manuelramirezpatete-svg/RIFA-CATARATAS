@@ -1156,8 +1156,8 @@
     <div class="modal-overlay" id="modalReciboWhatsApp" style="z-index: 10000; display: none;" onclick="if(event.target===this) cerrarModalReciboWhatsApp()">
         <div class="modal-card" style="max-width: 480px; text-align: center; border: 1px solid #10B981; box-shadow: 0 10px 40px rgba(16, 185, 129, 0.35);">
             <div style="font-size: 44px; margin-bottom: 8px;">🎉 🎟️ ✨</div>
-            <span style="font-size: 11px; font-weight: 800; color: #10B981; text-transform: uppercase; letter-spacing: 0.5px;">¡Pago Verificado con Éxito!</span>
-            <h2 style="font-size: 22px; color: #FFFFFF; margin: 4px 0 14px 0;">Recibo de Pago Listo</h2>
+            <span style="font-size: 11px; font-weight: 800; color: #10B981; text-transform: uppercase; letter-spacing: 0.5px;">¡Pago Verificado y Certificado!</span>
+            <h2 style="font-size: 22px; color: #FFFFFF; margin: 4px 0 14px 0;">Boleto Oficial Emitido</h2>
             
             <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 10px; padding: 14px; text-align: left; font-size: 13px; color: #E2E8F0; margin-bottom: 16px;">
                 <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
@@ -1182,16 +1182,24 @@
                 </div>
             </div>
 
-            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 16px;">
-                Toca el botón verde para abrir WhatsApp y enviarle al comprador su <strong>recibo oficial numerado</strong> con los detalles del sorteo:
+            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 14px;">
+                Envía el boleto oficial firmado en PDF con su <strong>código QR de validación en vivo</strong>:
             </p>
 
             <button type="button" class="btn" id="btnAbrirWhatsAppRecibo" style="width: 100%; justify-content: center; background: #22C55E; color: #FFFFFF; font-size: 15px; font-weight: 800; padding: 12px; border-radius: 8px; box-shadow: 0 4px 15px rgba(34, 197, 94, 0.4); margin-bottom: 10px; cursor: pointer;">
-                <span>📲</span> Enviar Recibo Oficial por WhatsApp
+                <span>📲</span> Enviar Boleto Oficial por WhatsApp
             </button>
+            <div style="display: flex; gap: 8px; margin-bottom: 10px;">
+                <a id="btnDescargarPdfAdmin" href="" target="_blank" class="btn btn-gold" style="flex: 1; justify-content: center; font-size: 12px; padding: 9px; text-decoration: none;">
+                    <span>📥</span> Descargar PDF
+                </a>
+                <a id="btnVerBoletoAdmin" href="" target="_blank" class="btn btn-outline" style="flex: 1; justify-content: center; font-size: 12px; padding: 9px; color: #38BDF8; text-decoration: none;">
+                    <span>👁️</span> Ver Boleto Web
+                </a>
+            </div>
             <div style="display: flex; gap: 8px;">
                 <button type="button" class="btn btn-outline" style="flex: 1; justify-content: center; font-size: 12px;" onclick="copiarTextoRecibo()">
-                    📋 Copiar Texto
+                    📋 Copiar Mensaje
                 </button>
                 <button type="button" class="btn btn-outline" style="flex: 1; justify-content: center; font-size: 12px;" onclick="cerrarModalReciboWhatsApp()">
                     Cerrar
@@ -1319,8 +1327,9 @@
                         confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
                     }
 
-                    // Abrir Recibo de WhatsApp
+                    // Abrir Recibo de WhatsApp con Boleto Digital
                     abrirModalReciboWhatsApp({
+                        numero: num,
                         numero_str: numStr,
                         comprador_nombre: nom,
                         comprador_telefono: tel,
@@ -1352,6 +1361,15 @@
             document.getElementById('reciboMonto').innerText = `$${info.monto_usd.toFixed(2)} USD (Bs. ${totalBs})`;
             document.getElementById('reciboMetodoRef').innerText = `${info.metodo_pago}${info.referencia_pago ? ' - Ref: ' + info.referencia_pago : ''}`;
 
+            const baseDomain = window.location.origin;
+            const boletoUrl = `${baseDomain}/boleto/${info.numero}`;
+            const pdfUrl = `${baseDomain}/boleto/${info.numero}/pdf?download=1`;
+
+            const btnPdf = document.getElementById('btnDescargarPdfAdmin');
+            if (btnPdf) btnPdf.href = pdfUrl;
+            const btnBoleto = document.getElementById('btnVerBoletoAdmin');
+            if (btnBoleto) btnBoleto.href = boletoUrl;
+
             // Normalizar teléfono
             let telClean = (info.comprador_telefono || '').replace(/\D/g, '');
             if (telClean.startsWith('0')) {
@@ -1360,19 +1378,21 @@
                 telClean = '58' + telClean;
             }
 
-            const refTexto = info.referencia_pago ? `🔢 *Referencia:* ${info.referencia_pago}\n` : '';
-            const msg = `🎉 *¡RECIBO DE PAGO CONFIRMADO!* 🎟️✨\n` +
+            const refTexto = info.referencia_pago ? `💳 *Método:* ${info.metodo_pago} (Ref: ${info.referencia_pago})\n` : `💳 *Método:* ${info.metodo_pago}\n`;
+            const msg = `🎉 *¡BOLETO OFICIAL CONFIRMADO!* 🎟️✨\n` +
                 `*Gran Rifa Benéfica - Cirugía de Cataratas*\n` +
                 `----------------------------------------\n` +
-                `Estimado(a) *${info.comprador_nombre}*, ¡tu pago ha sido recibido y verificado con total éxito! Ya estás participando oficialmente en el sorteo.\n\n` +
-                `📋 *DETALLES DE TU PARTICIPACIÓN:*\n` +
+                `Estimado(a) *${info.comprador_nombre}*, ¡tu pago ha sido recibido y verificado con total éxito! Ya estás participando oficialmente.\n\n` +
+                `📋 *DATOS DE TU PARTICIPACIÓN:*\n` +
                 `🎟️ *Boleto Oficial:* *#${info.numero_str}*\n` +
                 `💵 *Monto Confirmado:* $${info.monto_usd.toFixed(2)} USD (Bs. ${totalBs})\n` +
-                `💳 *Método de Pago:* ${info.metodo_pago}\n` +
                 refTexto +
-                `\n🏆 *PREMIO:* Aire Acondicionado de Ventana 12.000 BTU\n` +
+                `🏆 *Premio:* Aire Acondicionado de Ventana 12.000 BTU\n` +
                 `📅 *Fecha de Sorteo:* 5 de Noviembre 2026\n` +
                 `🎰 *Lotería:* Lotería del Zulia (7:00 PM)\n\n` +
+                `📄 *DESCARGA AQUÍ TU BOLETO OFICIAL EN PDF CON SELLO Y QR:* \n` +
+                `👉 ${boletoUrl}\n\n` +
+                `*(Tu boleto cuenta con Código QR y Firma Criptográfica del Sistema que certifica tu propiedad legítima ante cualquier reclamo).* \n\n` +
                 `🙏 *¡Muchísimas gracias de corazón por tu valioso apoyo y solidaridad! Que Dios te bendiga grandemente y multiplique tu generosidad.* ✨🍀`;
 
             ultimoReciboData.mensajeTexto = msg;
@@ -1386,7 +1406,7 @@
                 };
             } else {
                 btnWa.onclick = () => {
-                    alert("Este comprador no tiene teléfono registrado. Puedes copiar el texto con el botón 'Copiar Texto'.");
+                    alert("Este comprador no tiene teléfono registrado. Puedes copiar el texto con el botón 'Copiar Mensaje'.");
                 };
             }
 
@@ -1722,6 +1742,7 @@
 
             if (estadoSeleccionado === 'PAGADO') {
                 abrirModalReciboWhatsApp({
+                    numero: numeroSeleccionado.numero,
                     numero_str: num,
                     comprador_nombre: nom,
                     comprador_telefono: tel,

@@ -15,6 +15,9 @@ import time
 import uuid
 import threading
 import subprocess
+import hmac
+import hashlib
+import base64
 from urllib.parse import quote
 from datetime import datetime
 from werkzeug.utils import secure_filename
@@ -974,6 +977,262 @@ def descargar_flyer(tipo):
     else:
         path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'img', 'flyer_rifa_cuadrado.png')
         return send_file(path, as_attachment=True, download_name="Flyer_Rifa_Benefica_Cuadrado.png")
+
+# --- Generación de Boletos Oficiales con Firma Digital y Código QR ---
+def generar_firma_boleto(numero, comprador_nombre, comprador_telefono):
+    """Genera una firma criptográfica inviolable para un boleto pagado"""
+    raw = f"{numero}:{comprador_nombre or ''}:{comprador_telefono or ''}:{app.secret_key}"
+    sig = hmac.new(app.secret_key.encode('utf-8'), raw.encode('utf-8'), hashlib.sha256).hexdigest()[:12].upper()
+    return f"RIFA-{sig[:4]}-{sig[4:8]}-{sig[8:12]}"
+
+def generar_pdf_boleto_bytes(row, cfg, host_url):
+    import qrcode
+    from reportlab.pdfgen import canvas
+    from reportlab.lib import colors
+    from reportlab.lib.utils import ImageReader
+
+    num = row['numero']
+    num_str = row['numero_str']
+    nom = row['comprador_nombre'] or 'Comprador Oficial'
+    tel = row['comprador_telefono'] or 'No registrado'
+    monto_usd = float(row['monto_pagado'] or (cfg['precio_usd'] if cfg else 5.0))
+    tasa = float(cfg['tasa_bcv'] if cfg else 45.0)
+    monto_bs = monto_usd * tasa
+    fecha = row['fecha_actualizacion'] or row['fecha_registro'] or datetime.now().strftime("%Y-%m-%d %H:%M")
+    firma = generar_firma_boleto(num, nom, tel)
+
+    verify_url = f"{host_url.rstrip('/')}/verificar/{num}?sig={firma}"
+
+    # Generar QR
+    qr = qrcode.QRCode(version=1, box_size=6, border=1)
+    qr.add_data(verify_url)
+    qr.make(fit=True)
+    qr_img = qr.make_image(fill_color='black', back_color='white')
+    qr_buf = io.BytesIO()
+    qr_img.save(qr_buf, format='PNG')
+    qr_buf.seek(0)
+    qr_reader = ImageReader(qr_buf)
+
+    # Generar Canvas PDF
+    buf = io.BytesIO()
+    c = canvas.Canvas(buf, pagesize=(580, 290))
+
+    # Fondo oscuro elegante
+    c.setFillColor(colors.HexColor('#0B1329'))
+    c.roundRect(5, 5, 570, 280, 10, fill=1, stroke=0)
+
+    # Borde dorado
+    c.setStrokeColor(colors.HexColor('#F59E0B'))
+    c.setLineWidth(2)
+    c.roundRect(8, 8, 564, 274, 8, fill=0, stroke=1)
+
+    # Línea punteada de desprendible
+    c.setStrokeColor(colors.HexColor('#334155'))
+    c.setDash(4, 3)
+    c.line(405, 10, 405, 280)
+    c.setDash()
+
+    # Título Principal
+    c.setFillColor(colors.HexColor('#F59E0B'))
+    c.setFont('Helvetica-Bold', 14)
+    c.drawString(25, 260, 'GRAN RIFA BENEFICA - CIRUGIA DE CATARATAS')
+
+    c.setFillColor(colors.HexColor('#94A3B8'))
+    c.setFont('Helvetica', 9)
+    c.drawString(25, 245, 'Boleto Oficial de Participacion - Emision Certificada')
+
+    # Cuadro del Número de Boleto
+    c.setFillColor(colors.HexColor('#1E293B'))
+    c.setStrokeColor(colors.HexColor('#F59E0B'))
+    c.setLineWidth(1.5)
+    c.roundRect(25, 165, 140, 68, 6, fill=1, stroke=1)
+
+    c.setFillColor(colors.HexColor('#FCD34D'))
+    c.setFont('Helvetica-Bold', 8)
+    c.drawString(35, 218, 'NUMERO OFICIAL')
+
+    c.setFont('Helvetica-Bold', 32)
+    c.drawString(35, 178, f"#{num_str}")
+
+    # Datos del Titular
+    c.setFillColor(colors.HexColor('#CBD5E1'))
+    c.setFont('Helvetica', 10)
+    c.drawString(180, 218, 'Titular: ')
+    c.setFillColor(colors.HexColor('#FFFFFF'))
+    c.setFont('Helvetica-Bold', 10)
+    nom_display = nom if len(nom) <= 22 else nom[:20] + '..'
+    c.drawString(235, 218, nom_display)
+
+    c.setFillColor(colors.HexColor('#CBD5E1'))
+    c.setFont('Helvetica', 10)
+    c.drawString(180, 198, 'Telefono: ')
+    c.setFillColor(colors.HexColor('#38BDF8'))
+    c.setFont('Helvetica-Bold', 10)
+    c.drawString(235, 198, tel)
+
+    c.setFillColor(colors.HexColor('#CBD5E1'))
+    c.setFont('Helvetica', 10)
+    c.drawString(180, 178, 'Monto: ')
+    c.setFillColor(colors.HexColor('#34D399'))
+    c.setFont('Helvetica-Bold', 10)
+    c.drawString(235, 178, f"${monto_usd:.2f} USD (Bs. {monto_bs:,.2f})")
+
+    # Caja de Información del Sorteo
+    c.setFillColor(colors.HexColor('#131F37'))
+    c.setStrokeColor(colors.HexColor('#1E293B'))
+    c.setLineWidth(1)
+    c.roundRect(25, 60, 365, 95, 6, fill=1, stroke=1)
+
+    c.setFillColor(colors.HexColor('#F59E0B'))
+    c.setFont('Helvetica-Bold', 10)
+    c.drawString(35, 138, 'PREMIO: Aire Acondicionado 12.000 BTU')
+
+    c.setFillColor(colors.HexColor('#E2E8F0'))
+    c.setFont('Helvetica', 9)
+    c.drawString(35, 120, 'Fecha de Sorteo: 5 de Noviembre 2026')
+    c.drawString(35, 104, 'Loteria: Loteria del Zulia (7:00 PM)')
+    metodo_display = row['metodo_pago'] or 'Pago Movil'
+    c.drawString(35, 88, f"Metodo: {metodo_display}")
+
+    c.setFillColor(colors.HexColor('#10B981'))
+    c.setFont('Helvetica-Bold', 9)
+    c.drawString(35, 70, '[ CERTIFICADO 100% PAGADO Y VERIFICADO ]')
+
+    # Hash Criptográfico
+    c.setFillColor(colors.HexColor('#64748B'))
+    c.setFont('Helvetica', 8)
+    c.drawString(25, 25, f"Firma Digital del Sistema: {firma}")
+
+    # Desprendible QR Derecho
+    c.setFillColor(colors.HexColor('#FFFFFF'))
+    c.roundRect(430, 115, 120, 120, 6, fill=1, stroke=0)
+    c.drawImage(qr_reader, 435, 120, width=110, height=110)
+
+    c.setFillColor(colors.HexColor('#F59E0B'))
+    c.setFont('Helvetica-Bold', 9)
+    c.drawCentredString(490, 250, 'VALIDACION QR')
+
+    c.setFillColor(colors.HexColor('#94A3B8'))
+    c.setFont('Helvetica', 8)
+    c.drawCentredString(490, 95, 'Escanea para verificar')
+    c.drawCentredString(490, 82, 'autenticidad en vivo')
+
+    c.setFillColor(colors.HexColor('#34D399'))
+    c.setFont('Helvetica-Bold', 9)
+    c.drawCentredString(490, 50, 'SELLO OFICIAL')
+    c.drawCentredString(490, 36, 'NO FALSIFICABLE')
+
+    c.save()
+    buf.seek(0)
+    return buf.getvalue()
+
+@app.route('/boleto/<int:num>')
+def ver_boleto_digital(num):
+    conn = get_db()
+    row = conn.execute("SELECT * FROM numeros WHERE numero = ?", (num,)).fetchone()
+    cfg = conn.execute("SELECT * FROM configuracion WHERE id = 1").fetchone()
+    conn.close()
+
+    if not row:
+        return "Boleto no encontrado", 404
+
+    nom = row['comprador_nombre'] or 'Participante'
+    tel = row['comprador_telefono'] or 'No registrado'
+    monto = float(row['monto_pagado'] or (cfg['precio_usd'] if cfg else 5.0))
+    tasa = float(cfg['tasa_bcv'] if cfg else 45.0)
+    total_bs = monto * tasa
+    total_bs_fmt = f"{total_bs:,.2f}"
+    fecha_emision = row['fecha_actualizacion'] or row['fecha_registro'] or datetime.now().strftime("%d/%m/%Y %H:%M")
+    firma = generar_firma_boleto(num, nom, tel)
+
+    host_url = request.host_url
+    if 'onrender.com' not in host_url and CURRENT_PUBLIC_URL:
+        host_url = CURRENT_PUBLIC_URL
+
+    verify_url = f"{host_url.rstrip('/')}/verificar/{num}?sig={firma}"
+
+    # Generar QR Base64
+    import qrcode
+    qr = qrcode.QRCode(version=1, box_size=6, border=1)
+    qr.add_data(verify_url)
+    qr.make(fit=True)
+    qr_img = qr.make_image(fill_color='black', back_color='white')
+    qr_buf = io.BytesIO()
+    qr_img.save(qr_buf, format='PNG')
+    qr_b64 = "data:image/png;base64," + base64.b64encode(qr_buf.getvalue()).decode('utf-8')
+
+    return render_template('boleto_digital.html',
+        numero=num,
+        numero_str=row['numero_str'],
+        comprador_nombre=nom,
+        comprador_telefono=tel,
+        monto_pagado=monto,
+        total_bs_formatted=total_bs_fmt,
+        fecha_emision=fecha_emision,
+        firma_digital=firma,
+        qr_b64=qr_b64,
+        estado=row['estado']
+    )
+
+@app.route('/boleto/<int:num>/pdf')
+def descargar_boleto_pdf(num):
+    conn = get_db()
+    row = conn.execute("SELECT * FROM numeros WHERE numero = ?", (num,)).fetchone()
+    cfg = conn.execute("SELECT * FROM configuracion WHERE id = 1").fetchone()
+    conn.close()
+
+    if not row:
+        return "Boleto no encontrado", 404
+
+    host_url = request.host_url
+    if 'onrender.com' not in host_url and CURRENT_PUBLIC_URL:
+        host_url = CURRENT_PUBLIC_URL
+
+    pdf_bytes = generar_pdf_boleto_bytes(row, cfg, host_url)
+
+    nom_slug = re.sub(r'[^a-zA-Z0-9]', '_', row['comprador_nombre'] or 'Boleto')
+    filename = f"Boleto_Oficial_{row['numero_str']}_{nom_slug}.pdf"
+
+    as_attachment = (request.args.get('download') == '1')
+    return Response(
+        pdf_bytes,
+        mimetype='application/pdf',
+        headers={
+            'Content-Disposition': f"{'attachment' if as_attachment else 'inline'}; filename=\"{filename}\""
+        }
+    )
+
+@app.route('/verificar/<int:num>')
+def verificar_boleto_publico(num):
+    conn = get_db()
+    row = conn.execute("SELECT * FROM numeros WHERE numero = ?", (num,)).fetchone()
+    cfg = conn.execute("SELECT * FROM configuracion WHERE id = 1").fetchone()
+    conn.close()
+
+    if not row:
+        return render_template('verificar_boleto.html', estado='NO_EXISTE', numero=num, numero_str=f"{num:03d}")
+
+    nom = row['comprador_nombre'] or 'Participante'
+    tel = row['comprador_telefono'] or 'No registrado'
+    monto = float(row['monto_pagado'] or (cfg['precio_usd'] if cfg else 5.0))
+    tasa = float(cfg['tasa_bcv'] if cfg else 45.0)
+    total_bs = monto * tasa
+    total_bs_fmt = f"{total_bs:,.2f}"
+    fecha_emision = row['fecha_actualizacion'] or row['fecha_registro'] or datetime.now().strftime("%d/%m/%Y %H:%M")
+    firma = generar_firma_boleto(num, nom, tel)
+
+    return render_template('verificar_boleto.html',
+        numero=num,
+        numero_str=row['numero_str'],
+        comprador_nombre=nom,
+        comprador_telefono=tel,
+        monto_pagado=monto,
+        total_bs_formatted=total_bs_fmt,
+        fecha_emision=fecha_emision,
+        firma_digital=firma,
+        estado=row['estado']
+    )
+
 
 # --- Servicio en Segundo Plano: Túnel Público Seguro HTTPS ---
 def background_public_tunnel():

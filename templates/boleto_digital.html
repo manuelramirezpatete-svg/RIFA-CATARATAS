@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Boleto Oficial #{{ numero_str }} - Gran Rifa Benéfica</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&family=Outfit:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #070B19;
+            --card-bg: #0F172A;
+            --accent-gold: #F59E0B;
+            --accent-gold-light: #FCD34D;
+            --accent-cyan: #38BDF8;
+            --accent-emerald: #10B981;
+            --border: rgba(245, 158, 11, 0.35);
+            --text-main: #FFFFFF;
+            --text-muted: #94A3B8;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg);
+            background-image: 
+                radial-gradient(circle at 50% 0%, rgba(245, 158, 11, 0.12) 0%, transparent 60%),
+                radial-gradient(circle at 100% 100%, rgba(56, 189, 248, 0.08) 0%, transparent 50%);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 24px 16px;
+        }
+
+        .ticket-wrapper {
+            max-width: 720px;
+            width: 100%;
+        }
+
+        .ticket-card {
+            background: #0B132B;
+            border: 2px solid var(--accent-gold);
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7), 0 0 35px rgba(245, 158, 11, 0.2);
+            position: relative;
+        }
+
+        /* Top ribbon */
+        .ticket-ribbon {
+            background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+            color: #000;
+            padding: 10px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        .ticket-body {
+            display: grid;
+            grid-template-columns: 1fr 220px;
+            position: relative;
+        }
+
+        @media (max-width: 640px) {
+            .ticket-body {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Left Main Section */
+        .ticket-main {
+            padding: 24px;
+            border-right: 2px dashed rgba(245, 158, 11, 0.3);
+            position: relative;
+        }
+
+        @media (max-width: 640px) {
+            .ticket-main {
+                border-right: none;
+                border-bottom: 2px dashed rgba(245, 158, 11, 0.3);
+            }
+        }
+
+        .ticket-title {
+            font-size: 18px;
+            font-weight: 900;
+            color: #FFFFFF;
+            letter-spacing: -0.3px;
+            line-height: 1.2;
+            margin-bottom: 4px;
+        }
+
+        .ticket-subtitle {
+            font-size: 12px;
+            color: var(--accent-cyan);
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+
+        .ticket-num-box {
+            background: rgba(30, 41, 59, 0.7);
+            border: 1.5px solid var(--accent-gold);
+            border-radius: 12px;
+            padding: 12px 18px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+            box-shadow: inset 0 2px 8px rgba(0,0,0,0.4);
+        }
+
+        .ticket-num-label {
+            font-size: 11px;
+            font-weight: 800;
+            color: var(--accent-gold-light);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .ticket-num-val {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 40px;
+            font-weight: 900;
+            color: var(--accent-gold);
+            line-height: 1;
+            text-shadow: 0 0 15px rgba(245, 158, 11, 0.5);
+        }
+
+        .ticket-grid-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px 16px;
+            font-size: 12.5px;
+            margin-bottom: 16px;
+        }
+
+        .info-item .info-label {
+            font-size: 10.5px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            margin-bottom: 2px;
+            font-weight: 600;
+        }
+
+        .info-item .info-val {
+            color: #FFFFFF;
+            font-weight: 700;
+        }
+
+        .prize-box {
+            background: rgba(245, 158, 11, 0.08);
+            border: 1px solid rgba(245, 158, 11, 0.25);
+            border-radius: 10px;
+            padding: 10px 14px;
+            font-size: 12px;
+            color: #E2E8F0;
+            line-height: 1.4;
+        }
+
+        .prize-box strong {
+            color: var(--accent-gold-light);
+        }
+
+        /* Right Stub Section */
+        .ticket-stub {
+            background: #0D1633;
+            padding: 24px 18px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+
+        .qr-card {
+            background: #FFFFFF;
+            padding: 8px;
+            border-radius: 10px;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+            margin-bottom: 12px;
+        }
+
+        .qr-card img {
+            display: block;
+            width: 140px;
+            height: 140px;
+        }
+
+        .stub-title {
+            font-size: 11px;
+            font-weight: 800;
+            color: var(--accent-cyan);
+            text-transform: uppercase;
+            margin-bottom: 2px;
+        }
+
+        .stub-sub {
+            font-size: 10px;
+            color: var(--text-muted);
+            margin-bottom: 10px;
+            line-height: 1.3;
+        }
+
+        .badge-verified {
+            background: rgba(16, 185, 129, 0.2);
+            border: 1px solid #10B981;
+            color: #34D399;
+            font-size: 10px;
+            font-weight: 800;
+            padding: 4px 10px;
+            border-radius: 20px;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* Security Bar */
+        .security-bar {
+            background: #080D1F;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .security-hash {
+            font-family: 'JetBrains Mono', monospace;
+            color: #38BDF8;
+            font-weight: 700;
+        }
+
+        /* Action Buttons */
+        .action-row {
+            margin-top: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            justify-content: center;
+        }
+
+        .btn-action {
+            font-family: 'Outfit', sans-serif;
+            font-size: 13px;
+            font-weight: 700;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+            border: none;
+        }
+
+        .btn-pdf {
+            background: #F59E0B;
+            color: #000;
+            box-shadow: 0 4px 14px rgba(245, 158, 11, 0.35);
+        }
+        .btn-pdf:hover {
+            background: #FCD34D;
+            transform: translateY(-1px);
+        }
+
+        .btn-print {
+            background: rgba(255, 255, 255, 0.08);
+            color: #FFF;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .btn-print:hover {
+            background: rgba(255, 255, 255, 0.16);
+        }
+
+        .btn-verify {
+            background: rgba(56, 189, 248, 0.15);
+            color: #38BDF8;
+            border: 1px solid var(--accent-cyan);
+        }
+        .btn-verify:hover {
+            background: rgba(56, 189, 248, 0.25);
+        }
+
+        /* Print styles */
+        @media print {
+            body {
+                background: #FFF;
+                color: #000;
+                padding: 0;
+            }
+            .action-row {
+                display: none;
+            }
+            .ticket-card {
+                box-shadow: none;
+                border: 2px solid #000;
+                background: #FFF;
+                color: #000;
+            }
+            .ticket-ribbon {
+                background: #EEE;
+                color: #000;
+            }
+            .ticket-title, .ticket-num-val, .info-item .info-val {
+                color: #000;
+            }
+            .ticket-num-box, .prize-box, .ticket-stub, .security-bar {
+                background: #FFF;
+                border-color: #000;
+                color: #000;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="ticket-wrapper">
+        <div class="ticket-card">
+            <!-- Ribbon -->
+            <div class="ticket-ribbon">
+                <span>🎟️ Certificado Oficial de Participación</span>
+                <span>Folio: #{{ numero_str }}</span>
+            </div>
+
+            <!-- Body -->
+            <div class="ticket-body">
+                <!-- Left Section -->
+                <div class="ticket-main">
+                    <h1 class="ticket-title">Gran Rifa Benéfica</h1>
+                    <div class="ticket-subtitle">A Beneficio de Cirugía de Cataratas</div>
+
+                    <!-- Number Box -->
+                    <div class="ticket-num-box">
+                        <div>
+                            <div class="ticket-num-label">Número Asignado</div>
+                            <div style="font-size: 11px; color: var(--text-muted);">Boleto Registrado</div>
+                        </div>
+                        <div class="ticket-num-val">#{{ numero_str }}</div>
+                    </div>
+
+                    <!-- Grid Info -->
+                    <div class="ticket-grid-info">
+                        <div class="info-item">
+                            <div class="info-label">👤 Titular del Boleto</div>
+                            <div class="info-val">{{ comprador_nombre }}</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">📱 Teléfono / WhatsApp</div>
+                            <div class="info-val" style="color: var(--accent-cyan);">{{ comprador_telefono }}</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">💵 Monto Confirmado</div>
+                            <div class="info-val" style="color: var(--accent-gold-light);">${{ "%.2f"|format(monto_pagado) }} USD (Bs. {{ total_bs_formatted }})</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">📅 Fecha de Emisión</div>
+                            <div class="info-val">{{ fecha_emision }}</div>
+                        </div>
+                    </div>
+
+                    <!-- Prize Details -->
+                    <div class="prize-box">
+                        <div>🏆 <strong>Premio:</strong> Aire Acondicionado de Ventana 12.000 BTU</div>
+                        <div style="margin-top: 3px;">📅 <strong>Fecha del Sorteo:</strong> 5 de Noviembre 2026</div>
+                        <div style="margin-top: 3px;">🎰 <strong>Lotería Oficial:</strong> Lotería del Zulia (7:00 PM)</div>
+                    </div>
+                </div>
+
+                <!-- Right Stub -->
+                <div class="ticket-stub">
+                    <div class="qr-card">
+                        <img src="{{ qr_b64 }}" alt="QR de Verificación">
+                    </div>
+                    <div class="stub-title">Validación en Vivo</div>
+                    <div class="stub-sub">Escanea con tu cámara para comprobar la autenticidad</div>
+                    <div class="badge-verified">
+                        <span>✓</span> PAGO VERIFICADO
+                    </div>
+                </div>
+            </div>
+
+            <!-- Security Footer -->
+            <div class="security-bar">
+                <div>
+                    <span>🔒 Firma Criptográfica del Sistema: </span>
+                    <span class="security-hash">{{ firma_digital }}</span>
+                </div>
+                <div style="font-size: 10px;">Sistema Rifa Benéfica © 2026</div>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="action-row">
+            <a href="/boleto/{{ numero }}/pdf?download=1" class="btn-action btn-pdf">
+                <span>📥</span> Descargar en PDF Oficial
+            </a>
+            <button onclick="window.print()" class="btn-action btn-print">
+                <span>🖨️</span> Imprimir Boleto
+            </button>
+            <a href="/verificar/{{ numero }}?sig={{ firma_digital }}" target="_blank" class="btn-action btn-verify">
+                <span>🔍</span> Verificar en Línea
+            </a>
+        </div>
+    </div>
+
+</body>
+</html>

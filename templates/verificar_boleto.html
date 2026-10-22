@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verificación Oficial de Boleto #{{ numero_str }} - Gran Rifa Benéfica</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&family=Outfit:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #070B19;
+            --card-bg: #0F172A;
+            --accent-gold: #F59E0B;
+            --accent-cyan: #38BDF8;
+            --accent-emerald: #10B981;
+            --accent-red: #EF4444;
+            --border: rgba(255, 255, 255, 0.1);
+            --text-main: #FFFFFF;
+            --text-muted: #94A3B8;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg);
+            background-image: 
+                radial-gradient(circle at 50% 0%, rgba(16, 185, 129, 0.12) 0%, transparent 60%),
+                radial-gradient(circle at 100% 100%, rgba(56, 189, 248, 0.08) 0%, transparent 50%);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 24px 16px;
+        }
+
+        .verify-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            max-width: 520px;
+            width: 100%;
+            padding: 28px 24px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+            text-align: center;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 18px;
+            border-radius: 30px;
+            font-size: 13px;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            margin-bottom: 16px;
+        }
+
+        .status-badge.valid {
+            background: rgba(16, 185, 129, 0.16);
+            border: 1.5px solid #10B981;
+            color: #34D399;
+            box-shadow: 0 0 25px rgba(16, 185, 129, 0.25);
+        }
+
+        .status-badge.pending {
+            background: rgba(245, 158, 11, 0.16);
+            border: 1.5px solid #F59E0B;
+            color: #FCD34D;
+        }
+
+        .status-badge.invalid {
+            background: rgba(239, 68, 68, 0.16);
+            border: 1.5px solid #EF4444;
+            color: #FCA5A5;
+        }
+
+        .big-number {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 48px;
+            font-weight: 900;
+            color: var(--accent-gold);
+            line-height: 1;
+            margin-bottom: 6px;
+            text-shadow: 0 0 20px rgba(245, 158, 11, 0.4);
+        }
+
+        .verify-title {
+            font-size: 20px;
+            font-weight: 800;
+            margin-bottom: 6px;
+            color: #FFFFFF;
+        }
+
+        .verify-desc {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-bottom: 20px;
+            line-height: 1.4;
+        }
+
+        .details-box {
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            padding: 16px;
+            text-align: left;
+            font-size: 13px;
+            margin-bottom: 20px;
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 7px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .detail-row:last-child {
+            border-bottom: none;
+        }
+
+        .detail-label {
+            color: var(--text-muted);
+        }
+
+        .detail-val {
+            font-weight: 700;
+            color: #FFFFFF;
+            text-align: right;
+        }
+
+        .hash-box {
+            background: #080D1F;
+            border: 1px dashed rgba(56, 189, 248, 0.4);
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            color: #38BDF8;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .btn-home {
+            background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+            color: #000;
+            font-family: 'Outfit', sans-serif;
+            font-size: 14px;
+            font-weight: 800;
+            padding: 12px 24px;
+            border-radius: 8px;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 14px rgba(245, 158, 11, 0.35);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="verify-card">
+        {% if estado == 'PAGADO' %}
+            <div class="status-badge valid">
+                <span>🛡️</span> Boleto Auténtico y Confirmado
+            </div>
+            <div class="big-number">#{{ numero_str }}</div>
+            <h1 class="verify-title">Verificación Oficial Exitosa</h1>
+            <p class="verify-desc">
+                Este boleto está debidamente registrado y pagado en el sistema oficial de la <strong>Gran Rifa Benéfica</strong>.
+            </p>
+
+            <div class="details-box">
+                <div class="detail-row">
+                    <span class="detail-label">Titular Registrado:</span>
+                    <span class="detail-val">{{ comprador_nombre }}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Teléfono:</span>
+                    <span class="detail-val" style="color: var(--accent-cyan);">{{ comprador_telefono }}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Monto Pagado:</span>
+                    <span class="detail-val" style="color: #34D399;">${{ "%.2f"|format(monto_pagado) }} USD (Bs. {{ total_bs_formatted }})</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Fecha de Registro:</span>
+                    <span class="detail-val">{{ fecha_emision }}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Premio a Jugar:</span>
+                    <span class="detail-val" style="color: var(--accent-gold);">Aire Acondicionado 12.000 BTU</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Fecha del Sorteo:</span>
+                    <span class="detail-val">5 de Noviembre 2026</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Lotería:</span>
+                    <span class="detail-val">Lotería del Zulia (7:00 PM)</span>
+                </div>
+            </div>
+
+            <div class="hash-box">
+                <span>🔒 Firma del Sistema:</span>
+                <strong>{{ firma_digital }}</strong>
+            </div>
+
+            <div style="display: flex; gap: 10px; justify-content: center;">
+                <a href="/boleto/{{ numero }}" class="btn-home" style="background: rgba(56, 189, 248, 0.15); color: #38BDF8; border: 1px solid var(--accent-cyan); box-shadow: none;">
+                    <span>🎟️</span> Ver Boleto Digital
+                </a>
+                <a href="/" class="btn-home">
+                    <span>🏠</span> Ir a la Rifa
+                </a>
+            </div>
+
+        {% elif estado == 'APARTADO' or estado == 'POR_CONFIRMAR' %}
+            <div class="status-badge pending">
+                <span>⏳</span> Boleto No Pagado (En Proceso)
+            </div>
+            <div class="big-number" style="color: #FCD34D;">#{{ numero_str }}</div>
+            <h1 class="verify-title">Pago Aún No Confirmado</h1>
+            <p class="verify-desc">
+                Este boleto está apartado en el sistema, pero <strong>aún no cuenta con pago confirmado</strong>. No es válido para reclamo de premios hasta ser verificado.
+            </p>
+            <a href="/" class="btn-home">
+                <span>🏠</span> Volver a la Rifa
+            </a>
+        {% else %}
+            <div class="status-badge invalid">
+                <span>❌</span> Boleto Inválido o Libre
+            </div>
+            <div class="big-number" style="color: #EF4444;">#{{ numero_str }}</div>
+            <h1 class="verify-title">Boleto No Encontrado</h1>
+            <p class="verify-desc">
+                Este número no se encuentra registrado como pagado en la base de datos oficial del sorteo.
+            </p>
+            <a href="/" class="btn-home">
+                <span>🏠</span> Volver a la Rifa
+            </a>
+        {% endif %}
+    </div>
+
+</body>
+</html>
