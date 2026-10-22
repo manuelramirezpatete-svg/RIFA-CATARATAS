@@ -124,6 +124,38 @@
             padding: 4px;
             background: linear-gradient(135deg, #F59E0B 0%, #38BDF8 100%);
             box-shadow: 0 0 20px rgba(245, 158, 11, 0.35);
+            cursor: pointer;
+            transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease;
+        }
+
+        .beneficiary-avatar-box:hover {
+            transform: scale(1.08);
+            box-shadow: 0 0 30px rgba(56, 189, 248, 0.7);
+        }
+
+        .avatar-zoom-badge {
+            position: absolute;
+            bottom: 2px;
+            right: 2px;
+            background: #0F1A33;
+            color: #38BDF8;
+            border: 2px solid #38BDF8;
+            border-radius: 50%;
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.6);
+            pointer-events: none;
+            transition: transform 0.2s ease, background 0.2s ease;
+        }
+
+        .beneficiary-avatar-box:hover .avatar-zoom-badge {
+            transform: scale(1.15);
+            background: #38BDF8;
+            color: #0F1A33;
         }
 
         .beneficiary-avatar-img {
@@ -133,6 +165,12 @@
             border-radius: 50%;
             border: 2px solid #0B1120;
         }
+
+        @keyframes lightboxPop {
+            0% { opacity: 0; transform: scale(0.92); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+
 
         .prize-card-preview {
             background: var(--bg-surface);
@@ -771,13 +809,14 @@
         </p>
 
         <div class="hero-media-row">
-            <!-- Beneficiary Lady Avatar -->
-            <div class="beneficiary-avatar-box">
+            <!-- Beneficiary Lady Avatar (Clic para abrir afiche completo) -->
+            <div class="beneficiary-avatar-box" onclick="abrirLightbox('/static/img/flyer_rifa_vertical.png', 'Afiche Oficial de la Rifa - Cirugía de Cataratas')" title="Toca para ver el afiche completo">
                 <img src="/static/img/flyer_rifa_vertical.png" alt="Beneficiaria" class="beneficiary-avatar-img">
+                <span class="avatar-zoom-badge" title="Toca para agrandar">🔍</span>
             </div>
 
-            <!-- Prize Card Preview -->
-            <div class="prize-card-preview">
+            <!-- Prize Card Preview (Clic para ver imagen del premio) -->
+            <div class="prize-card-preview" onclick="abrirLightbox('/static/img/flyer_rifa_cuadrado.png', 'Gran Premio: Aire Acondicionado 12.000 BTU')" title="Toca para ver la imagen del premio" style="cursor: pointer;">
                 <img src="/static/img/flyer_rifa_cuadrado.png" alt="Premio" class="prize-thumb">
                 <div style="text-align: left;">
                     <div class="prize-info-title">🏆 Gran Premio:</div>
@@ -1140,6 +1179,18 @@
                 <button type="button" class="btn-checkout" style="width: 100%; justify-content: center; background: rgba(255, 255, 255, 0.08); border: 1px solid var(--border); color: #FFFFFF; font-weight: 700;" onclick="location.reload()">
                     ✅ Entendido / Volver al Inicio
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Visor de Imagen Completa (Lightbox) -->
+    <div class="modal-overlay" id="modalLightbox" onclick="if(event.target===this) cerrarLightbox()" style="z-index: 3000; padding: 12px; background: rgba(3, 7, 18, 0.94); backdrop-filter: blur(10px);">
+        <div style="position: relative; max-width: 95vw; max-height: 95vh; display: flex; flex-direction: column; align-items: center; justify-content: center; animation: lightboxPop 0.25s cubic-bezier(0.16, 1, 0.3, 1);">
+            <button type="button" onclick="cerrarLightbox()" aria-label="Cerrar" style="position: absolute; top: -14px; right: -14px; width: 42px; height: 42px; border-radius: 50%; background: #EF4444; color: #FFFFFF; border: 2px solid #FFFFFF; font-size: 20px; font-weight: 900; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 20px rgba(0,0,0,0.8); z-index: 20; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">✕</button>
+            <img id="lightboxImg" src="" alt="Foto Rifa" style="max-width: 92vw; max-height: 82vh; object-fit: contain; border-radius: 16px; box-shadow: 0 20px 50px rgba(0,0,0,0.85); border: 2px solid rgba(56, 189, 248, 0.45); background: #0B1120;">
+            <div style="margin-top: 12px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: center;">
+                <span id="lightboxCaption" style="font-size: 13px; font-weight: 700; color: #FFFFFF; background: rgba(19, 30, 54, 0.9); padding: 7px 16px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.12); text-align: center;"></span>
+                <button type="button" onclick="cerrarLightbox()" style="background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.25); color: #FFFFFF; font-size: 12px; font-weight: 700; padding: 7px 14px; border-radius: 20px; cursor: pointer;">Cerrar ✕</button>
             </div>
         </div>
     </div>
@@ -1650,6 +1701,33 @@
                 btn.innerHTML = '<span>🚀</span> Enviar Comprobante y Reportar Pago';
             }
         }
+
+        // Visor de Imagen / Lightbox
+        function abrirLightbox(src, caption) {
+            const modal = document.getElementById('modalLightbox');
+            const img = document.getElementById('lightboxImg');
+            const cap = document.getElementById('lightboxCaption');
+            if (modal && img) {
+                img.src = src;
+                if (cap) cap.textContent = caption || 'Afiche de la Rifa';
+                modal.style.display = 'flex';
+                document.body.style.overflow = 'hidden';
+            }
+        }
+
+        function cerrarLightbox() {
+            const modal = document.getElementById('modalLightbox');
+            if (modal) {
+                modal.style.display = 'none';
+                document.body.style.overflow = '';
+            }
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                cerrarLightbox();
+            }
+        });
     </script>
 </body>
 </html>
