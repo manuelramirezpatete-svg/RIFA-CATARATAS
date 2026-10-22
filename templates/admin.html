@@ -1,0 +1,1502 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Control de Rifa Benéfica | 500 Números</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        :root {
+            --bg-base: #0B1120;
+            --bg-surface: #131E36;
+            --bg-card: #182647;
+            --bg-card-hover: #1E315C;
+            --border: #23355E;
+            --border-light: rgba(255, 255, 255, 0.1);
+            
+            --text-main: #F8FAFC;
+            --text-muted: #94A3B8;
+            --text-dim: #64748B;
+            
+            --accent-cyan: #38BDF8;
+            --accent-blue: #2563EB;
+            --accent-gold: #F59E0B;
+            --accent-gold-light: #FCD34D;
+            --accent-emerald: #10B981;
+            --accent-emerald-light: #34D399;
+            --accent-rose: #EF4444;
+            --accent-amber: #F59E0B;
+            
+            --color-disponible: #10B981;
+            --color-apartado: #F59E0B;
+            --color-pagado: #EF4444;
+
+            --radius-sm: 6px;
+            --radius-md: 10px;
+            --radius-lg: 16px;
+            --shadow-sm: 0 2px 8px rgba(0,0,0,0.3);
+            --shadow-md: 0 8px 24px rgba(0,0,0,0.4);
+            --shadow-glow: 0 0 20px rgba(56, 189, 248, 0.25);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+
+        /* Top Bar */
+        .top-navbar {
+            background: linear-gradient(180deg, #162446 0%, #0F1A33 100%);
+            border-bottom: 1px solid var(--border);
+            padding: 12px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+        }
+
+        .brand-info {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .brand-logo-icon {
+            width: 44px;
+            height: 44px;
+            background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            box-shadow: 0 0 16px rgba(245, 158, 11, 0.4);
+        }
+
+        .brand-title {
+            font-size: 19px;
+            font-weight: 800;
+            letter-spacing: -0.3px;
+            color: #FFFFFF;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .badge-cause {
+            background: rgba(56, 189, 248, 0.15);
+            border: 1px solid rgba(56, 189, 248, 0.35);
+            color: var(--accent-cyan);
+            font-size: 11px;
+            font-weight: 700;
+            padding: 2px 10px;
+            border-radius: 20px;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        .nav-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            padding: 8px 16px;
+            border-radius: var(--radius-md);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            border: 1px solid transparent;
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            text-decoration: none;
+            user-select: none;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #0284C7 0%, #0369A1 100%);
+            color: #FFFFFF;
+            box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);
+        }
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #0369A1 0%, #075985 100%);
+            box-shadow: 0 6px 16px rgba(2, 132, 199, 0.4);
+        }
+
+        .btn-gold {
+            background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+            color: #111827;
+            font-weight: 700;
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.35);
+        }
+        .btn-gold:hover {
+            box-shadow: 0 6px 16px rgba(245, 158, 11, 0.5);
+        }
+
+        .btn-outline {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: var(--border);
+            color: var(--text-main);
+        }
+        .btn-outline:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: var(--accent-cyan);
+        }
+
+        /* Container & Layout */
+        .main-container {
+            max-width: 1400px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 20px 24px;
+            flex: 1;
+        }
+
+        /* Hero / KPI Cards */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .kpi-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+            transition: border-color 0.2s;
+        }
+
+        .kpi-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: var(--card-color, var(--accent-cyan));
+        }
+
+        .kpi-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: var(--radius-md);
+            background: rgba(255, 255, 255, 0.05);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            flex-shrink: 0;
+        }
+
+        .kpi-content {
+            flex: 1;
+        }
+
+        .kpi-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 2px;
+        }
+
+        .kpi-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 24px;
+            font-weight: 700;
+            color: #FFFFFF;
+        }
+
+        .kpi-sub {
+            font-size: 11px;
+            color: var(--text-dim);
+            margin-top: 2px;
+        }
+
+        /* Progress Card */
+        .progress-box {
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 18px 24px;
+            margin-bottom: 24px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .progress-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .progress-bar-track {
+            height: 12px;
+            background: #0B1120;
+            border-radius: 6px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+            position: relative;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #10B981 0%, #38BDF8 50%, #F59E0B 100%);
+            border-radius: 6px;
+            transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
+        }
+
+        /* Control Panel */
+        .control-panel {
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 16px 20px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .search-box {
+            position: relative;
+            flex: 1;
+            min-width: 260px;
+            max-width: 440px;
+        }
+
+        .search-input {
+            width: 100%;
+            background: var(--bg-base);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 10px 14px 10px 38px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 14px;
+            color: #FFFFFF;
+            outline: none;
+            transition: all 0.2s;
+        }
+
+        .search-input:focus {
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            font-size: 15px;
+        }
+
+        .filter-tabs {
+            display: flex;
+            background: var(--bg-base);
+            padding: 4px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border);
+            gap: 4px;
+            flex-wrap: wrap;
+        }
+
+        .filter-tab {
+            padding: 6px 14px;
+            border-radius: var(--radius-sm);
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-muted);
+            cursor: pointer;
+            border: none;
+            background: transparent;
+            transition: all 0.15s;
+        }
+
+        .filter-tab.active {
+            background: var(--accent-cyan);
+            color: #0B1120;
+            font-weight: 700;
+        }
+
+        .legend-box {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        /* Number Grid */
+        .numbers-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(68px, 1fr));
+            gap: 8px;
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 18px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .num-tile {
+            aspect-ratio: 1;
+            border-radius: var(--radius-md);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+            border: 1px solid transparent;
+            user-select: none;
+            position: relative;
+            padding: 2px;
+            text-align: center;
+        }
+
+        .num-tile:hover {
+            transform: scale(1.08);
+            z-index: 5;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+        }
+
+        .num-tile-digits {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 16px;
+            font-weight: 800;
+            line-height: 1.1;
+        }
+
+        .num-tile-buyer {
+            font-size: 9px;
+            font-weight: 600;
+            max-width: 90%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            margin-top: 3px;
+        }
+
+        /* Tile States */
+        .num-tile.disponible {
+            background: rgba(16, 185, 129, 0.1);
+            border-color: rgba(16, 185, 129, 0.3);
+            color: #34D399;
+        }
+        .num-tile.disponible:hover {
+            background: rgba(16, 185, 129, 0.25);
+            border-color: #10B981;
+            color: #FFFFFF;
+        }
+
+        .num-tile.apartado {
+            background: rgba(245, 158, 11, 0.15);
+            border-color: rgba(245, 158, 11, 0.4);
+            color: #FCD34D;
+        }
+        .num-tile.apartado:hover {
+            background: rgba(245, 158, 11, 0.3);
+            border-color: #F59E0B;
+            color: #FFFFFF;
+        }
+
+        .num-tile.pagado {
+            background: rgba(239, 68, 68, 0.18);
+            border-color: rgba(239, 68, 68, 0.45);
+            color: #FCA5A5;
+        }
+        .num-tile.pagado:hover {
+            background: rgba(239, 68, 68, 0.35);
+            border-color: #EF4444;
+            color: #FFFFFF;
+        }
+
+        .num-tile.selected-multi {
+            box-shadow: 0 0 0 3px #38BDF8 !important;
+            transform: scale(1.05);
+        }
+
+        /* Modal Overlays */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(4, 9, 20, 0.82);
+            backdrop-filter: blur(6px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 16px;
+            animation: fadeIn 0.2s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-card {
+            background: #131E36;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            width: 100%;
+            max-width: 520px;
+            box-shadow: var(--shadow-md);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            animation: slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(20px) scale(0.98); opacity: 0; }
+            to { transform: translateY(0) scale(1); opacity: 1; }
+        }
+
+        .modal-header {
+            padding: 18px 24px;
+            background: linear-gradient(180deg, #182647 0%, #131E36 100%);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-body {
+            padding: 20px 24px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-footer {
+            padding: 16px 24px;
+            background: #0F1A33;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        /* Form Controls */
+        .form-group {
+            margin-bottom: 14px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .form-input, .form-select, .form-textarea {
+            width: 100%;
+            background: #0B1120;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 10px 14px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 14px;
+            color: #FFFFFF;
+            outline: none;
+            transition: all 0.2s;
+        }
+
+        .form-input:focus, .form-select:focus, .form-textarea:focus {
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2);
+        }
+
+        .state-radio-group {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .state-radio-btn {
+            padding: 10px 8px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border);
+            background: #0B1120;
+            color: var(--text-muted);
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.15s;
+        }
+
+        .state-radio-btn.active.disp {
+            background: rgba(16, 185, 129, 0.2);
+            border-color: #10B981;
+            color: #34D399;
+        }
+        .state-radio-btn.active.apart {
+            background: rgba(245, 158, 11, 0.25);
+            border-color: #F59E0B;
+            color: #FCD34D;
+        }
+        .state-radio-btn.active.pag {
+            background: rgba(239, 68, 68, 0.25);
+            border-color: #EF4444;
+            color: #FCA5A5;
+        }
+
+        /* Toast Notifications */
+        .toast-container {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 2000;
+        }
+
+        .toast {
+            background: #182647;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 12px 20px;
+            color: #FFFFFF;
+            font-size: 13px;
+            font-weight: 600;
+            box-shadow: var(--shadow-md);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            animation: slideInRight 0.2s ease-out;
+        }
+
+        @keyframes slideInRight {
+            from { transform: translateX(50px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .top-navbar { padding: 12px 16px; }
+            .main-container { padding: 16px 12px; }
+            .kpi-grid { grid-template-columns: 1fr 1fr; }
+            .numbers-grid { grid-template-columns: repeat(auto-fill, minmax(58px, 1fr)); gap: 6px; padding: 12px; }
+            .num-tile-digits { font-size: 14px; }
+            .num-tile-buyer { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Top Navigation Bar -->
+    <header class="top-navbar">
+        <div class="brand-info">
+            <div class="brand-logo-icon">🎟️</div>
+            <div>
+                <h1 class="brand-title">
+                    Control de Rifa Benéfica
+                    <span class="badge-cause">Cirugía de Cataratas</span>
+                </h1>
+                <div style="font-size: 11px; color: var(--text-muted);">
+                    Premio: <strong>Aire de Ventana 12.000 BTU</strong> | Valor: <strong>5$</strong> | Lotería Zulia 7:00 PM (5 Nov)
+                </div>
+            </div>
+        </div>
+
+        <div class="nav-actions">
+            <button class="btn btn-outline" onclick="abrirModalFlyers()">
+                <span>📸</span> Ver / Descargar Flyers
+            </button>
+            <a href="/exportar_csv" class="btn btn-outline" title="Descargar reporte en formato Excel">
+                <span>📊</span> Exportar a Excel
+            </a>
+            <button class="btn btn-gold" onclick="abrirModalSorteo()">
+                <span>🏆</span> Sorteo / Ganador
+            </button>
+            <button class="btn btn-primary" onclick="toggleMultiSelectMode()">
+                <span id="multiBtnIcon">📑</span> <span id="multiBtnText">Venta Múltiple</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Banner de Enlace Público para Clientes -->
+    <div style="background: linear-gradient(90deg, rgba(2,132,199,0.2) 0%, rgba(16,185,129,0.2) 100%); border-bottom: 1px solid var(--border); padding: 10px 24px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+            <span style="background: #10B981; color: #042F2E; font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 12px; text-transform: uppercase;">🌐 Enlace Público Online</span>
+            <span style="font-size: 13px; color: var(--text-muted);">Comparte este enlace para que los compradores elijan su número en internet:</span>
+            <input type="text" id="txtEnlacePublico" readonly style="background: #0B1120; border: 1px solid var(--border); color: var(--accent-cyan); font-family: 'JetBrains Mono'; font-size: 13px; font-weight: 700; padding: 4px 10px; border-radius: 6px; width: 340px;" value="Generando enlace seguro...">
+        </div>
+        <div style="display: flex; gap: 8px;">
+            <button class="btn btn-outline" style="padding: 5px 12px; font-size: 12px;" onclick="copiarEnlacePublico()">📋 Copiar Link</button>
+            <button class="btn btn-primary" style="padding: 5px 12px; font-size: 12px; background: #22C55E;" onclick="compartirWhatsAppLink()">📲 Difundir en WhatsApp</button>
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <main class="main-container">
+
+        <!-- KPI Metrics Grid -->
+        <section class="kpi-grid">
+            <div class="kpi-card" style="--card-color: var(--accent-cyan);">
+                <div class="kpi-icon">🎯</div>
+                <div class="kpi-content">
+                    <div class="kpi-label">Meta Total</div>
+                    <div class="kpi-value" id="kpiMeta">$2,500</div>
+                    <div class="kpi-sub">500 números a $5 c/u</div>
+                </div>
+            </div>
+
+            <div class="kpi-card" style="--card-color: var(--accent-emerald);">
+                <div class="kpi-icon">💵</div>
+                <div class="kpi-content">
+                    <div class="kpi-label">Total Recaudado</div>
+                    <div class="kpi-value" id="kpiRecaudado" style="color: var(--accent-emerald-light);">$0.00</div>
+                    <div class="kpi-sub" id="kpiRecaudadoBs">Bs. 0.00</div>
+                </div>
+            </div>
+
+            <div class="kpi-card" style="--card-color: var(--color-disponible);">
+                <div class="kpi-icon">🟢</div>
+                <div class="kpi-content">
+                    <div class="kpi-label">Disponibles</div>
+                    <div class="kpi-value" id="kpiLibres" style="color: #34D399;">500</div>
+                    <div class="kpi-sub">Listos para vender</div>
+                </div>
+            </div>
+
+            <div class="kpi-card" style="--card-color: var(--color-apartado);">
+                <div class="kpi-icon">🟡</div>
+                <div class="kpi-content">
+                    <div class="kpi-label">Apartados</div>
+                    <div class="kpi-value" id="kpiApartados" style="color: #FCD34D;">0</div>
+                    <div class="kpi-sub">Por confirmar pago</div>
+                </div>
+            </div>
+
+            <div class="kpi-card" style="--card-color: var(--color-pagado);">
+                <div class="kpi-icon">🔴</div>
+                <div class="kpi-content">
+                    <div class="kpi-label">Pagados</div>
+                    <div class="kpi-value" id="kpiPagados" style="color: #F87171;">0</div>
+                    <div class="kpi-sub">Confirmados 100%</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Progress Bar Card -->
+        <section class="progress-box">
+            <div class="progress-header">
+                <div class="progress-title">
+                    <span>📈 Avance de Recaudación:</span>
+                    <strong id="progressPercentageText" style="color: var(--accent-cyan); font-family: 'JetBrains Mono';">0%</strong>
+                </div>
+                <div style="font-size: 12px; color: var(--text-muted);" id="progressSummaryText">
+                    0 de 500 números pagados
+                </div>
+            </div>
+            <div class="progress-bar-track">
+                <div class="progress-bar-fill" id="progressBarFill" style="width: 0%;"></div>
+            </div>
+        </section>
+
+        <!-- Control and Filter Bar -->
+        <section class="control-panel">
+            <div class="search-box">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="txtBuscar" class="search-input" placeholder="Buscar por número (ej: 045), nombre o teléfono..." oninput="filtrarNumeros()">
+            </div>
+
+            <div class="filter-tabs">
+                <button class="filter-tab active" data-filter="TODOS" onclick="setFiltro('TODOS', this)">Todos (500)</button>
+                <button class="filter-tab" data-filter="DISPONIBLE" onclick="setFiltro('DISPONIBLE', this)">🟢 Disponibles</button>
+                <button class="filter-tab" data-filter="APARTADO" onclick="setFiltro('APARTADO', this)">🟡 Apartados</button>
+                <button class="filter-tab" data-filter="PAGADO" onclick="setFiltro('PAGADO', this)">🔴 Pagados</button>
+            </div>
+
+            <div class="legend-box">
+                <div class="legend-item"><span class="legend-dot" style="background:#10B981;"></span> Disponible</div>
+                <div class="legend-item"><span class="legend-dot" style="background:#F59E0B;"></span> Apartado</div>
+                <div class="legend-item"><span class="legend-dot" style="background:#EF4444;"></span> Pagado</div>
+            </div>
+        </section>
+
+        <!-- Interactive Numbers Grid -->
+        <section class="numbers-grid" id="gridNumeros">
+            <!-- 500 Tiles rendered dynamically via JS -->
+        </section>
+
+    </main>
+
+    <!-- Modal Detalle / Venta de Número Individual -->
+    <div class="modal-overlay" id="modalNumero" onclick="if(event.target===this) cerrarModalNumero()">
+        <div class="modal-card">
+            <div class="modal-header">
+                <div>
+                    <span style="font-size: 11px; font-weight: 700; color: var(--accent-cyan); text-transform: uppercase;">Detalle de Boleto</span>
+                    <h2 id="modalNumeroTitle" style="font-family: 'JetBrains Mono'; font-size: 26px; color: #FFFFFF;">#000</h2>
+                </div>
+                <button class="btn btn-outline" style="padding: 4px 10px;" onclick="cerrarModalNumero()">✕</button>
+            </div>
+
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">Estado del Número</label>
+                    <div class="state-radio-group">
+                        <div class="state-radio-btn disp" id="radioDisp" onclick="seleccionarEstado('DISPONIBLE')">🟢 Disponible</div>
+                        <div class="state-radio-btn apart" id="radioApart" onclick="seleccionarEstado('APARTADO')">🟡 Apartado</div>
+                        <div class="state-radio-btn pag" id="radioPag" onclick="seleccionarEstado('PAGADO')">🔴 Pagado</div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Nombre del Comprador</label>
+                    <input type="text" id="modalInputNombre" class="form-input" placeholder="Ej: Carlos Pérez">
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <div class="form-group">
+                        <label class="form-label">Teléfono / WhatsApp</label>
+                        <input type="text" id="modalInputTelefono" class="form-input" placeholder="Ej: 04249718479">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Cédula</label>
+                        <input type="text" id="modalInputCedula" class="form-input" placeholder="Ej: 24522792">
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <div class="form-group">
+                        <label class="form-label">Monto Pagado ($)</label>
+                        <input type="number" step="0.5" id="modalInputMonto" class="form-input" placeholder="5.00">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Método de Pago</label>
+                        <select id="modalSelectMetodo" class="form-select">
+                            <option value="Pago Móvil">Pago Móvil</option>
+                            <option value="Efectivo USD">Efectivo USD</option>
+                            <option value="Efectivo Bs">Efectivo Bs</option>
+                            <option value="Transferencia">Transferencia</option>
+                            <option value="Zelle">Zelle</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Referencia Bancaria</label>
+                    <input type="text" id="modalInputReferencia" class="form-input" placeholder="Últimos 4 dígitos o número de referencia">
+                </div>
+
+                <div class="form-group" id="boxComprobanteAdjunto" style="display: none;">
+                    <label class="form-label" style="color: var(--accent-cyan);">📷 Comprobante de Pago Adjunto</label>
+                    <div style="background: #0B1120; border: 1px solid var(--accent-cyan); border-radius: 8px; padding: 10px; display: flex; align-items: center; justify-content: space-between;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <img src="" id="adminComprobanteThumb" style="width: 52px; height: 52px; object-fit: cover; border-radius: 6px; cursor: pointer; border: 1px solid var(--border);" onclick="window.open(this.src, '_blank')">
+                            <div>
+                                <div style="font-size: 12px; font-weight: 700; color: #FFF;">Captura subida por el cliente</div>
+                                <div style="font-size: 11px; color: var(--accent-emerald-light);">✓ Disponible para verificación</div>
+                            </div>
+                        </div>
+                        <a href="" id="adminComprobanteLink" target="_blank" class="btn btn-outline" style="padding: 5px 12px; font-size: 11px;">🔍 Ver Completo</a>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Notas Adicionales</label>
+                    <input type="text" id="modalInputNotas" class="form-input" placeholder="Comentarios u observaciones...">
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-gold" id="btnConfirmarPagoDirecto" onclick="confirmarPagoDirecto()" style="background: #10B981; color: #FFFFFF;">
+                    ✅ Confirmar Pago
+                </button>
+                <button type="button" class="btn btn-outline" style="color: #EF4444;" onclick="liberarNumeroActual()">
+                    🗑️ Liberar
+                </button>
+                <button type="button" class="btn btn-outline" style="color: #22C55E;" onclick="enviarWhatsAppComprobante()">
+                    💬 WhatsApp
+                </button>
+                <button type="button" class="btn btn-primary" onclick="guardarNumeroActual()">
+                    💾 Guardar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Venta Múltiple -->
+    <div class="modal-overlay" id="modalVentaMultiple" onclick="if(event.target===this) cerrarModalVentaMultiple()">
+        <div class="modal-card">
+            <div class="modal-header">
+                <div>
+                    <span style="font-size: 11px; font-weight: 700; color: var(--accent-gold); text-transform: uppercase;">Asignación Múltiple</span>
+                    <h2 style="font-size: 20px; color: #FFFFFF;">Vender Números en Bloque</h2>
+                </div>
+                <button class="btn btn-outline" style="padding: 4px 10px;" onclick="cerrarModalVentaMultiple()">✕</button>
+            </div>
+
+            <div class="modal-body">
+                <div style="background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 8px; padding: 12px; margin-bottom: 16px;">
+                    <span style="font-size: 12px; color: var(--text-muted);">Números Seleccionados (<strong id="multiCountBadge" style="color:#FFF;">0</strong>):</span>
+                    <div id="multiSelectedList" style="font-family: 'JetBrains Mono'; font-size: 14px; font-weight: 700; color: var(--accent-cyan); margin-top: 4px; word-break: break-all;"></div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Estado para todos</label>
+                    <div class="state-radio-group">
+                        <div class="state-radio-btn apart active" id="multiRadioApart" onclick="seleccionarEstadoMulti('APARTADO')">🟡 Apartar</div>
+                        <div class="state-radio-btn pag" id="multiRadioPag" onclick="seleccionarEstadoMulti('PAGADO')">🔴 Pagado</div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Nombre del Comprador</label>
+                    <input type="text" id="multiInputNombre" class="form-input" placeholder="Nombre completo">
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <div class="form-group">
+                        <label class="form-label">Teléfono / WhatsApp</label>
+                        <input type="text" id="multiInputTelefono" class="form-input" placeholder="0424...">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Cédula</label>
+                        <input type="text" id="multiInputCedula" class="form-input" placeholder="V-...">
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <div class="form-group">
+                        <label class="form-label">Monto Total ($)</label>
+                        <input type="number" step="0.5" id="multiInputMontoTotal" class="form-input" placeholder="Monto total">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Método</label>
+                        <select id="multiSelectMetodo" class="form-select">
+                            <option value="Pago Móvil">Pago Móvil</option>
+                            <option value="Efectivo USD">Efectivo USD</option>
+                            <option value="Transferencia">Transferencia</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Referencia Bancaria</label>
+                    <input type="text" id="multiInputReferencia" class="form-input" placeholder="Referencia...">
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" onclick="cerrarModalVentaMultiple()">Cancelar</button>
+                <button type="button" class="btn btn-gold" onclick="guardarVentaMultiple()">
+                    ✅ Confirmar Venta Múltiple
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Descargar / Ver Flyers Publicitarios -->
+    <div class="modal-overlay" id="modalFlyers" onclick="if(event.target===this) cerrarModalFlyers()">
+        <div class="modal-card" style="max-width: 780px;">
+            <div class="modal-header">
+                <div>
+                    <span style="font-size: 11px; font-weight: 700; color: var(--accent-gold); text-transform: uppercase;">Material Promocional HD</span>
+                    <h2 style="font-size: 20px; color: #FFFFFF;">Flyers e Imágenes de la Rifa</h2>
+                </div>
+                <button class="btn btn-outline" style="padding: 4px 10px;" onclick="cerrarModalFlyers()">✕</button>
+            </div>
+
+            <div class="modal-body" style="display: grid; grid-template-columns: 1fr 1fr; gap: 18px;">
+                <!-- Vertical Flyer -->
+                <div style="background: var(--bg-base); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 14px; text-align: center;">
+                    <h3 style="font-size: 14px; margin-bottom: 8px; color: var(--accent-cyan);">Formato Vertical (WhatsApp / Stories)</h3>
+                    <img src="/static/img/flyer_rifa_vertical.png" alt="Flyer Vertical" style="width: 100%; max-height: 380px; object-fit: contain; border-radius: 8px; margin-bottom: 12px; background: #000;">
+                    <a href="/descargar_flyer/vertical" class="btn btn-primary" style="width: 100%; justify-content: center;">
+                        ⬇️ Descargar Vertical HD
+                    </a>
+                </div>
+
+                <!-- Square Flyer -->
+                <div style="background: var(--bg-base); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 14px; text-align: center;">
+                    <h3 style="font-size: 14px; margin-bottom: 8px; color: var(--accent-gold);">Formato Cuadrado (Feed / Posts)</h3>
+                    <img src="/static/img/flyer_rifa_cuadrado.png" alt="Flyer Cuadrado" style="width: 100%; max-height: 380px; object-fit: contain; border-radius: 8px; margin-bottom: 12px; background: #000;">
+                    <a href="/descargar_flyer/cuadrado" class="btn btn-gold" style="width: 100%; justify-content: center;">
+                        ⬇️ Descargar Cuadrado HD
+                    </a>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn btn-outline" onclick="cerrarModalFlyers()">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Sorteo / Ganador -->
+    <div class="modal-overlay" id="modalSorteo" onclick="if(event.target===this) cerrarModalSorteo()">
+        <div class="modal-card">
+            <div class="modal-header">
+                <div>
+                    <span style="font-size: 11px; font-weight: 700; color: var(--accent-gold); text-transform: uppercase;">Gran Sorteo 5 de Noviembre</span>
+                    <h2 style="font-size: 20px; color: #FFFFFF;">Consultar Ganador</h2>
+                </div>
+                <button class="btn btn-outline" style="padding: 4px 10px;" onclick="cerrarModalSorteo()">✕</button>
+            </div>
+
+            <div class="modal-body" style="text-align: center;">
+                <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">
+                    Ingresa las 3 cifras ganadoras de la <strong>Lotería del Zulia (7:00 PM)</strong> para ubicar al afortunado ganador:
+                </p>
+
+                <div style="display: flex; justify-content: center; gap: 10px; margin-bottom: 20px;">
+                    <input type="text" id="txtNumeroGanadorInput" maxlength="3" class="form-input" placeholder="000" style="width: 140px; text-align: center; font-family: 'JetBrains Mono'; font-size: 28px; font-weight: 800; color: var(--accent-gold); letter-spacing: 4px;">
+                    <button class="btn btn-gold" onclick="verificarGanador()">Verificar</button>
+                </div>
+
+                <div id="resultadoGanadorBox" style="display: none; background: rgba(16, 185, 129, 0.15); border: 1px solid #10B981; border-radius: var(--radius-md); padding: 18px; text-align: left;">
+                    <div style="text-align: center; font-size: 36px; margin-bottom: 6px;">🎉 🏆 🎉</div>
+                    <h3 id="ganadorNumeroHeader" style="text-align: center; font-family: 'JetBrains Mono'; font-size: 24px; color: #FFFFFF; margin-bottom: 12px;"></h3>
+                    <div style="font-size: 14px; line-height: 1.8;">
+                        <div>👤 <strong>Ganador:</strong> <span id="ganadorNombre"></span></div>
+                        <div>📱 <strong>Teléfono:</strong> <span id="ganadorTelefono"></span></div>
+                        <div>🪪 <strong>Cédula:</strong> <span id="ganadorCedula"></span></div>
+                        <div>🔖 <strong>Estado:</strong> <span id="ganadorEstado"></span></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn btn-outline" onclick="cerrarModalSorteo()">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script>
+        let numerosData = [];
+        let filtroActual = 'TODOS';
+        let numeroSeleccionado = null;
+        let estadoSeleccionado = 'DISPONIBLE';
+        let modoSeleccionMultiple = false;
+        let numerosMultiples = new Set();
+        let configData = {};
+
+        // Iniciar
+        document.addEventListener('DOMContentLoaded', async () => {
+            await cargarConfig();
+            await cargarDatos();
+            cargarEnlacePublico();
+        });
+
+        async function cargarEnlacePublico() {
+            try {
+                const res = await fetch('/api/enlace_publico');
+                const d = await res.json();
+                if (d && d.url) {
+                    document.getElementById('txtEnlacePublico').value = d.url;
+                } else {
+                    setTimeout(cargarEnlacePublico, 2500);
+                }
+            } catch(e) {
+                setTimeout(cargarEnlacePublico, 3500);
+            }
+        }
+
+        function copiarEnlacePublico() {
+            const url = document.getElementById('txtEnlacePublico').value;
+            if (!url || url.includes('Generando')) {
+                showToast("Aún conectando enlace...");
+                return;
+            }
+            navigator.clipboard.writeText(url).then(() => {
+                showToast("¡Enlace público copiado!");
+            });
+        }
+
+        function compartirWhatsAppLink() {
+            const url = document.getElementById('txtEnlacePublico').value;
+            if (!url || url.includes('Generando')) {
+                alert("El enlace se está conectando, espera unos segundos.");
+                return;
+            }
+            const msg = `¡Hola a todos! 👋 Los invito cordialmente a participar en la *Gran Rifa Benéfica* a beneficio de una *Cirugía de Cataratas*.\n\n` +
+                `🏆 *Gran Premio:* Aire Acondicionado de Ventana 12.000 BTU\n` +
+                `🎟️ *Valor:* $5 por número\n` +
+                `📅 *Fecha de Sorteo:* 5 de Noviembre 2026\n` +
+                `🎰 *Juega con:* Lotería del Zulia (7:00 PM)\n\n` +
+                `👉 *Entra al enlace para elegir y apartar tus números:* \n${url}\n\n` +
+                `¡Muchísimas gracias por tu apoyo! ¡Dios multiplique tu bendición! 🙏✨`;
+            window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`, '_blank');
+        }
+
+        async function confirmarPagoDirecto() {
+            if (!numeroSeleccionado) return;
+            seleccionarEstado('PAGADO');
+            await guardarNumeroActual();
+        }
+
+        async function cargarConfig() {
+            try {
+                const res = await fetch('/api/config');
+                configData = await res.json();
+            } catch(e) {
+                console.error("Error al cargar config:", e);
+            }
+        }
+
+        async function cargarDatos() {
+            try {
+                const resEst = await fetch('/api/estadisticas');
+                const dEst = await resEst.json();
+                if (dEst.success) {
+                    renderEstadisticas(dEst);
+                }
+
+                const resNum = await fetch('/api/numeros');
+                const dNum = await resNum.json();
+                if (dNum.success) {
+                    numerosData = dNum.numeros;
+                    renderGrid();
+                }
+            } catch(e) {
+                showToast("Error al cargar datos de la rifa", "error");
+            }
+        }
+
+        function renderEstadisticas(d) {
+            document.getElementById('kpiLibres').innerText = d.libres;
+            document.getElementById('kpiApartados').innerText = d.apartados;
+            document.getElementById('kpiPagados').innerText = d.pagados;
+            document.getElementById('kpiRecaudado').innerText = `$${d.total_usd_recaudado.toFixed(2)}`;
+            document.getElementById('kpiRecaudadoBs').innerText = `Bs. ${d.total_bs_recaudado.toLocaleString('es-VE', {minimumFractionDigits: 2})}`;
+            
+            const perc = d.porcentaje_pagado;
+            document.getElementById('progressPercentageText').innerText = `${perc}%`;
+            document.getElementById('progressBarFill').style.width = `${Math.min(perc, 100)}%`;
+            document.getElementById('progressSummaryText').innerText = `${d.pagados} de ${d.total_numeros} números pagados (${d.apartados} apartados)`;
+        }
+
+        function renderGrid() {
+            const grid = document.getElementById('gridNumeros');
+            const q = (document.getElementById('txtBuscar')?.value || '').trim().toLowerCase();
+            grid.innerHTML = '';
+
+            const filtrados = numerosData.filter(item => {
+                // Filtro por tab
+                if (filtroActual !== 'TODOS' && item.estado !== filtroActual) {
+                    return false;
+                }
+                // Filtro por búsqueda
+                if (q) {
+                    const matchNum = item.numero_str.includes(q);
+                    const matchNom = (item.comprador_nombre || '').toLowerCase().includes(q);
+                    const matchTel = (item.comprador_telefono || '').includes(q);
+                    const matchCi = (item.comprador_cedula || '').includes(q);
+                    return matchNum || matchNom || matchTel || matchCi;
+                }
+                return true;
+            });
+
+            if (filtrados.length === 0) {
+                grid.innerHTML = `<div style="grid-column: 1 / -1; padding: 40px; text-align: center; color: var(--text-muted);">No se encontraron números con ese criterio.</div>`;
+                return;
+            }
+
+            filtrados.forEach(item => {
+                const tile = document.createElement('div');
+                const estClass = (item.estado || 'disponible').toLowerCase();
+                tile.className = `num-tile ${estClass}`;
+                
+                if (modoSeleccionMultiple && numerosMultiples.has(item.numero)) {
+                    tile.classList.add('selected-multi');
+                }
+
+                const buyerName = item.comprador_nombre ? item.comprador_nombre.split(' ')[0] : '';
+
+                tile.innerHTML = `
+                    <div class="num-tile-digits">${item.numero_str}</div>
+                    ${buyerName ? `<div class="num-tile-buyer">${escapeHtml(buyerName)}</div>` : ''}
+                `;
+
+                tile.onclick = () => onTileClick(item);
+                grid.appendChild(tile);
+            });
+        }
+
+        function onTileClick(item) {
+            if (modoSeleccionMultiple) {
+                if (numerosMultiples.has(item.numero)) {
+                    numerosMultiples.delete(item.numero);
+                } else {
+                    numerosMultiples.add(item.numero);
+                }
+                actualizarBarraMulti();
+                renderGrid();
+                return;
+            }
+
+            abrirModalNumero(item);
+        }
+
+        function setFiltro(estado, btn) {
+            filtroActual = estado;
+            document.querySelectorAll('.filter-tab').forEach(b => b.classList.remove('active'));
+            if (btn) btn.classList.add('active');
+            renderGrid();
+        }
+
+        function filtrarNumeros() {
+            renderGrid();
+        }
+
+        // Modal Detalle
+        function abrirModalNumero(item) {
+            numeroSeleccionado = item;
+            document.getElementById('modalNumeroTitle').innerText = `#${item.numero_str}`;
+            seleccionarEstado(item.estado || 'DISPONIBLE');
+            
+            document.getElementById('modalInputNombre').value = item.comprador_nombre || '';
+            document.getElementById('modalInputTelefono').value = item.comprador_telefono || '';
+            document.getElementById('modalInputCedula').value = item.comprador_cedula || '';
+            document.getElementById('modalInputMonto').value = item.monto_pagado || (item.estado === 'PAGADO' ? 5.0 : 0.0);
+            document.getElementById('modalSelectMetodo').value = item.metodo_pago || 'Pago Móvil';
+            document.getElementById('modalInputReferencia').value = item.referencia_pago || '';
+            document.getElementById('modalInputNotas').value = item.notas || '';
+
+            const boxComp = document.getElementById('boxComprobanteAdjunto');
+            if (boxComp) {
+                if (item.comprobante_img) {
+                    const compUrl = `/uploads/comprobantes/${item.comprobante_img}`;
+                    document.getElementById('adminComprobanteThumb').src = compUrl;
+                    document.getElementById('adminComprobanteLink').href = compUrl;
+                    boxComp.style.display = 'block';
+                } else {
+                    boxComp.style.display = 'none';
+                }
+            }
+
+            document.getElementById('modalNumero').style.display = 'flex';
+        }
+
+        function cerrarModalNumero() {
+            document.getElementById('modalNumero').style.display = 'none';
+            numeroSeleccionado = null;
+        }
+
+        function seleccionarEstado(est) {
+            estadoSeleccionado = est;
+            document.getElementById('radioDisp').classList.toggle('active', est === 'DISPONIBLE');
+            document.getElementById('radioApart').classList.toggle('active', est === 'APARTADO');
+            document.getElementById('radioPag').classList.toggle('active', est === 'PAGADO');
+
+            const inMonto = document.getElementById('modalInputMonto');
+            if (est === 'PAGADO' && (!inMonto.value || Number(inMonto.value) === 0)) {
+                inMonto.value = '5.00';
+            } else if (est === 'DISPONIBLE') {
+                inMonto.value = '0.00';
+            }
+        }
+
+        async function guardarNumeroActual() {
+            if (!numeroSeleccionado) return;
+            const num = numeroSeleccionado.numero;
+            
+            const payload = {
+                estado: estadoSeleccionado,
+                comprador_nombre: document.getElementById('modalInputNombre').value,
+                comprador_telefono: document.getElementById('modalInputTelefono').value,
+                comprador_cedula: document.getElementById('modalInputCedula').value,
+                monto_pagado: parseFloat(document.getElementById('modalInputMonto').value) || 0.0,
+                metodo_pago: document.getElementById('modalSelectMetodo').value,
+                referencia_pago: document.getElementById('modalInputReferencia').value,
+                notas: document.getElementById('modalInputNotas').value
+            };
+
+            try {
+                const res = await fetch(`/api/numero/${num}`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(payload)
+                });
+                const d = await res.json();
+                if (d.success) {
+                    showToast(`Número #${numeroSeleccionado.numero_str} actualizado con éxito!`);
+                    cerrarModalNumero();
+                    await cargarDatos();
+                }
+            } catch(e) {
+                showToast("Error al guardar número", "error");
+            }
+        }
+
+        async function liberarNumeroActual() {
+            if (!numeroSeleccionado) return;
+            if (!confirm(`¿Estás seguro de liberar el número #${numeroSeleccionado.numero_str} y devolverlo a DISPONIBLE?`)) return;
+
+            try {
+                const res = await fetch(`/api/numero/${numeroSeleccionado.numero}/liberar`, {method: 'POST'});
+                const d = await res.json();
+                if (d.success) {
+                    showToast(`Número #${numeroSeleccionado.numero_str} liberado.`);
+                    cerrarModalNumero();
+                    await cargarDatos();
+                }
+            } catch(e) {
+                showToast("Error al liberar número", "error");
+            }
+        }
+
+        function enviarWhatsAppComprobante() {
+            if (!numeroSeleccionado) return;
+            let tel = (document.getElementById('modalInputTelefono').value || '').replace(/\D/g, '');
+            const nom = document.getElementById('modalInputNombre').value || 'Amigo(a)';
+            const num = numeroSeleccionado.numero_str;
+            const est = estadoSeleccionado === 'PAGADO' ? 'CONFIRMADO Y PAGADO ✅' : 'APARTADO ⏳';
+
+            if (!tel) {
+                alert("Por favor ingresa el número de teléfono del comprador.");
+                return;
+            }
+
+            // Normalizar a código país Venezuela 58 si empieza por 04
+            if (tel.startsWith('0')) {
+                tel = '58' + tel.substring(1);
+            } else if (!tel.startsWith('58') && tel.length === 10) {
+                tel = '58' + tel;
+            }
+
+            const mensaje = `Hola *${nom}*! 👋\n\n` +
+                `Te confirmamos tu participación en la *GRAN RIFA BENÉFICA* a beneficio de una *Cirugía de Cataratas*.\n\n` +
+                `🎟️ *Tu Número:* *${num}*\n` +
+                `📌 *Estado:* ${est}\n` +
+                `🏆 *Premio:* Aire Acondicionado de Ventana 12.000 BTU\n` +
+                `📅 *Fecha de Sorteo:* 5 de Noviembre 2026\n` +
+                `🎰 *Juega con:* Lotería del Zulia (7:00 PM)\n` +
+                `💵 *Valor:* 5$ USD\n\n` +
+                `¡Muchísimas gracias de corazón por tu valiosa colaboración y apoyo! ¡Dios multiplique tu bendición! 🙏✨`;
+
+            const url = `https://api.whatsapp.com/send?phone=${tel}&text=${encodeURIComponent(mensaje)}`;
+            window.open(url, '_blank');
+        }
+
+        // Selección Múltiple
+        function toggleMultiSelectMode() {
+            modoSeleccionMultiple = !modoSeleccionMultiple;
+            const btn = document.getElementById('multiBtnText');
+            const icon = document.getElementById('multiBtnIcon');
+            
+            if (modoSeleccionMultiple) {
+                btn.innerText = "Finalizar Selección";
+                icon.innerText = "✅";
+                numerosMultiples.clear();
+                showToast("Modo múltiple activado: Haz clic en varios números para seleccionarlos");
+            } else {
+                if (numerosMultiples.size > 0) {
+                    abrirModalVentaMultiple();
+                } else {
+                    btn.innerText = "Venta Múltiple";
+                    icon.innerText = "📑";
+                }
+            }
+            renderGrid();
+        }
+
+        function actualizarBarraMulti() {
+            const count = numerosMultiples.size;
+            document.getElementById('multiBtnText').innerText = count > 0 ? `Asignar (${count})` : "Finalizar Selección";
+        }
+
+        let estadoMulti = 'APARTADO';
+        function seleccionarEstadoMulti(est) {
+            estadoMulti = est;
+            document.getElementById('multiRadioApart').classList.toggle('active', est === 'APARTADO');
+            document.getElementById('multiRadioPag').classList.toggle('active', est === 'PAGADO');
+        }
+
+        function abrirModalVentaMultiple() {
+            const arr = Array.from(numerosMultiples).sort((a,b)=>a-b);
+            const strList = arr.map(n => String(n).padStart(3, '0')).join(', ');
+            document.getElementById('multiCountBadge').innerText = arr.length;
+            document.getElementById('multiSelectedList').innerText = strList;
+            document.getElementById('multiInputMontoTotal').value = (arr.length * 5.0).toFixed(2);
+            document.getElementById('modalVentaMultiple').style.display = 'flex';
+        }
+
+        function cerrarModalVentaMultiple() {
+            document.getElementById('modalVentaMultiple').style.display = 'none';
+            modoSeleccionMultiple = false;
+            numerosMultiples.clear();
+            document.getElementById('multiBtnText').innerText = "Venta Múltiple";
+            document.getElementById('multiBtnIcon').innerText = "📑";
+            renderGrid();
+        }
+
+        async function guardarVentaMultiple() {
+            const arr = Array.from(numerosMultiples);
+            if (arr.length === 0) return;
+
+            const payload = {
+                numeros: arr,
+                estado: estadoMulti,
+                comprador_nombre: document.getElementById('multiInputNombre').value,
+                comprador_telefono: document.getElementById('multiInputTelefono').value,
+                comprador_cedula: document.getElementById('multiInputCedula').value,
+                metodo_pago: document.getElementById('multiSelectMetodo').value,
+                referencia_pago: document.getElementById('multiInputReferencia').value,
+                monto_total: parseFloat(document.getElementById('multiInputMontoTotal').value) || (arr.length * 5.0),
+                notas: 'Venta en bloque'
+            };
+
+            try {
+                const res = await fetch('/api/venta_multiple', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(payload)
+                });
+                const d = await res.json();
+                if (d.success) {
+                    showToast(`Se asignaron ${d.actualizados} números exitosamente!`);
+                    cerrarModalVentaMultiple();
+                    await cargarDatos();
+                }
+            } catch(e) {
+                showToast("Error al guardar venta múltiple", "error");
+            }
+        }
+
+        // Modal Flyers
+        function abrirModalFlyers() {
+            document.getElementById('modalFlyers').style.display = 'flex';
+        }
+        function cerrarModalFlyers() {
+            document.getElementById('modalFlyers').style.display = 'none';
+        }
+
+        // Modal Sorteo
+        function abrirModalSorteo() {
+            document.getElementById('modalSorteo').style.display = 'flex';
+            document.getElementById('resultadoGanadorBox').style.display = 'none';
+            document.getElementById('txtNumeroGanadorInput').value = '';
+        }
+        function cerrarModalSorteo() {
+            document.getElementById('modalSorteo').style.display = 'none';
+        }
+
+        function verificarGanador() {
+            const raw = document.getElementById('txtNumeroGanadorInput').value.trim();
+            const num = parseInt(raw, 10);
+            if (isNaN(num) || num < 1 || num > 500) {
+                alert("Por favor introduce un número válido entre 001 y 500.");
+                return;
+            }
+
+            const ganador = numerosData.find(n => n.numero === num);
+            const box = document.getElementById('resultadoGanadorBox');
+            if (ganador) {
+                document.getElementById('ganadorNumeroHeader').innerText = `Boleto Ganador: #${ganador.numero_str}`;
+                document.getElementById('ganadorNombre').innerText = ganador.comprador_nombre || 'Sin registrar (No vendido)';
+                document.getElementById('ganadorTelefono').innerText = ganador.comprador_telefono || 'N/A';
+                document.getElementById('ganadorCedula').innerText = ganador.comprador_cedula || 'N/A';
+                document.getElementById('ganadorEstado').innerText = ganador.estado;
+                box.style.display = 'block';
+
+                if (typeof confetti === 'function') {
+                    confetti({
+                        particleCount: 100,
+                        spread: 70,
+                        origin: { y: 0.6 }
+                    });
+                }
+            }
+        }
+
+        function showToast(msg, type = "success") {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.innerHTML = `<span>${type === 'error' ? '❌' : '✅'}</span> <span>${escapeHtml(msg)}</span>`;
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            return String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+    </script>
+</body>
+</html>

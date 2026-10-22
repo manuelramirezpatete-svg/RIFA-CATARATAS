@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: rifa-cataratas
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app_rifa:app
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.0

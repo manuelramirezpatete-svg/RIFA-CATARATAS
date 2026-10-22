@@ -1,0 +1,15 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Large binaries and logs
+cloudflared.exe
+cloudflared.log
+tunnel.log
+enlace_publico.txt
+
+# OS and environment
+.DS_Store
+Thumbs.db
+.env
