@@ -962,9 +962,9 @@
                 <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;" id="successDesc">
                     Tus números han quedado reservados a tu nombre en el sistema.
                 </p>
-                <div id="btnWhatsAppSuccessContainer" style="margin-bottom: 14px;"></div>
-                <button class="btn-checkout" style="width: 100%; justify-content: center;" onclick="location.reload()">
-                    Entendido / Volver al Inicio
+                <div id="btnWhatsAppSuccessContainer" style="margin-bottom: 12px;"></div>
+                <button type="button" class="btn-checkout" style="width: 100%; justify-content: center; background: rgba(255, 255, 255, 0.08); border: 1px solid var(--border); color: #FFFFFF; font-weight: 700;" onclick="location.reload()">
+                    ✅ Entendido / Volver al Inicio
                 </button>
             </div>
         </div>
@@ -1221,22 +1221,19 @@
                     
                     if (modo === 'APARTAR') {
                         document.getElementById('successTitle').innerText = "¡Boletos Apartados con Éxito!";
-                        document.getElementById('successDesc').innerText = `Tus números (${d.numeros.join(', ')}) han quedado apartados a tu nombre. Puedes notificar al organizador por WhatsApp para asegurar tu reserva.`;
+                        document.getElementById('successDesc').innerText = `Tus números (${d.numeros.join(', ')}) han quedado apartados a tu nombre en el sistema.`;
                     } else {
                         document.getElementById('successTitle').innerText = "¡Pago Registrado con Éxito!";
-                        document.getElementById('successDesc').innerText = `Tu pago de los números (${d.numeros.join(', ')}) está en proceso de verificación. Se abrirá WhatsApp para que envíes tu comprobante.`;
+                        document.getElementById('successDesc').innerText = `Tu pago de los números (${d.numeros.join(', ')}) ha sido registrado y está en proceso de verificación.`;
                     }
 
                     const waContainer = document.getElementById('btnWhatsAppSuccessContainer');
                     if (d.whatsapp_url) {
                         waContainer.innerHTML = `
-                            <a href="${d.whatsapp_url}" target="_blank" class="btn-action-main green" style="text-decoration:none;">
-                                💬 Abrir WhatsApp con el Comprobante
+                            <a href="${d.whatsapp_url}" target="_blank" class="btn-action-main green" style="text-decoration:none; display:flex; align-items:center; justify-content:center; gap:8px; font-weight:700;">
+                                <span>📲</span> Abrir WhatsApp para enviar comprobante (Opcional)
                             </a>
                         `;
-                        setTimeout(() => {
-                            window.open(d.whatsapp_url, '_blank');
-                        }, 700);
                     } else {
                         waContainer.innerHTML = '';
                     }

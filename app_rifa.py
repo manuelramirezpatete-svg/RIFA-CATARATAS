@@ -18,9 +18,12 @@ import subprocess
 from urllib.parse import quote
 from datetime import datetime
 from werkzeug.utils import secure_filename
-from flask import Flask, render_template, request, jsonify, send_file, send_from_directory, Response
+from flask import Flask, render_template, request, jsonify, send_file, send_from_directory, Response, session, redirect, url_for
 
 app = Flask(__name__)
+app.secret_key = os.environ.get('SECRET_KEY', 'rifa_cataratas_seguridad_admin_2026_x77')
+ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', '407845764')
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(BASE_DIR, 'rifa.db')
 UPLOAD_DIR = os.path.join(BASE_DIR, 'static', 'uploads', 'comprobantes')
@@ -117,9 +120,32 @@ def public_index():
 def public_comprar():
     return render_template('comprar.html')
 
+def check_admin():
+    return bool(session.get('admin_autenticado'))
+
 @app.route('/admin')
 def admin_dashboard():
+    if not check_admin():
+        return render_template('admin_login.html')
     return render_template('admin.html')
+
+@app.route('/admin/login', methods=['GET', 'POST'])
+def admin_login():
+    if request.method == 'POST':
+        clave = request.form.get('clave', '').strip()
+        if clave == ADMIN_PASSWORD:
+            session['admin_autenticado'] = True
+            return redirect('/admin')
+        return render_template('admin_login.html', error="Clave de seguridad incorrecta. Inténtalo nuevamente.")
+    
+    if check_admin():
+        return redirect('/admin')
+    return render_template('admin_login.html')
+
+@app.route('/admin/logout')
+def admin_logout():
+    session.pop('admin_autenticado', None)
+    return redirect('/admin')
 
 @app.route('/uploads/comprobantes/<filename>')
 def ver_comprobante(filename):
@@ -141,6 +167,9 @@ def api_enlace_publico():
 def api_config():
     conn = get_db()
     if request.method == 'POST':
+        if not check_admin():
+            conn.close()
+            return jsonify({'success': False, 'message': 'No autorizado. Inicie sesión.'}), 401
         data = request.json or {}
         cfg = conn.execute("SELECT * FROM configuracion WHERE id = 1").fetchone()
         cfg_dict = dict(cfg) if cfg else {}
@@ -364,6 +393,9 @@ def api_apartar_publico():
 def api_numero_detalle(num):
     conn = get_db()
     if request.method == 'POST':
+        if not check_admin():
+            conn.close()
+            return jsonify({'success': False, 'message': 'No autorizado. Inicie sesión.'}), 401
         data = request.json or {}
         ahora = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         estado = data.get('estado', 'APARTADO').upper()
@@ -411,6 +443,8 @@ def api_numero_detalle(num):
 
 @app.route('/api/numero/<int:num>/liberar', methods=['POST'])
 def api_numero_liberar(num):
+    if not check_admin():
+        return jsonify({'success': False, 'message': 'No autorizado. Inicie sesión.'}), 401
     conn = get_db()
     conn.execute("""
         UPDATE numeros SET
@@ -433,6 +467,8 @@ def api_numero_liberar(num):
 
 @app.route('/api/venta_multiple', methods=['POST'])
 def api_venta_multiple():
+    if not check_admin():
+        return jsonify({'success': False, 'message': 'No autorizado. Inicie sesión.'}), 401
     data = request.json or {}
     nums = data.get('numeros', [])
     if not nums:
@@ -505,6 +541,8 @@ def api_estadisticas():
 
 @app.route('/exportar_csv')
 def exportar_csv():
+    if not check_admin():
+        return redirect('/admin')
     conn = get_db()
     rows = conn.execute("SELECT * FROM numeros ORDER BY numero ASC").fetchall()
     conn.close()
