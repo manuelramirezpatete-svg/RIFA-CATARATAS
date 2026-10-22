@@ -391,15 +391,46 @@ def api_apartar_publico():
         conn.close()
         return jsonify({'success': False, 'message': f'Lo sentimos, el/los número(s) #{nums_ocup} ya fueron tomados por otra persona. Elige otro(s).'}), 409
 
-    # Guardar archivo comprobante si fue adjuntado
+    # Guardar archivo comprobante si fue adjuntado (Persistente dentro de la base de datos como Base64)
     comprobante_filename = ''
     if file_obj and file_obj.filename:
         ext = os.path.splitext(file_obj.filename)[1].lower()
-        if ext in ['.png', '.jpg', '.jpeg', '.webp', '.heic', '.pdf']:
-            unique_name = f"comp_{int(time.time())}_{uuid.uuid4().hex[:6]}{ext}"
-            save_path = os.path.join(UPLOAD_DIR, unique_name)
-            file_obj.save(save_path)
-            comprobante_filename = unique_name
+        if ext in ['.png', '.jpg', '.jpeg', '.webp', '.heic']:
+            import base64
+            buf = None
+            try:
+                from PIL import Image
+                img = Image.open(file_obj.stream)
+                img.thumbnail((1200, 1200), Image.Resampling.LANCZOS)
+                buf = io.BytesIO()
+                fmt = 'JPEG' if ext in ['.jpg', '.jpeg'] else 'PNG'
+                if fmt == 'JPEG':
+                    img = img.convert('RGB')
+                img.save(buf, format=fmt, quality=80)
+                b64 = base64.b64encode(buf.getvalue()).decode('utf-8')
+                mime = 'image/jpeg' if fmt == 'JPEG' else 'image/png'
+                comprobante_filename = f"data:{mime};base64,{b64}"
+            except Exception as e:
+                file_obj.seek(0)
+                raw_bytes = file_obj.read()
+                b64 = base64.b64encode(raw_bytes).decode('utf-8')
+                mime = 'image/jpeg' if ext in ['.jpg', '.jpeg'] else ('image/png' if ext == '.png' else 'image/webp')
+                comprobante_filename = f"data:{mime};base64,{b64}"
+                buf = io.BytesIO(raw_bytes)
+
+            try:
+                unique_name = f"comp_{int(time.time())}_{uuid.uuid4().hex[:6]}{ext}"
+                save_path = os.path.join(UPLOAD_DIR, unique_name)
+                if buf:
+                    with open(save_path, 'wb') as f:
+                        f.write(buf.getvalue())
+            except:
+                pass
+        elif ext == '.pdf':
+            import base64
+            file_obj.seek(0)
+            b64 = base64.b64encode(file_obj.read()).decode('utf-8')
+            comprobante_filename = f"data:application/pdf;base64,{b64}"
 
     ahora = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     monto_total_usd = len(numeros) * precio_usd

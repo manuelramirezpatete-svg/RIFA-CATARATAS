@@ -1397,7 +1397,7 @@
             const boxComp = document.getElementById('boxComprobanteAdjunto');
             if (boxComp) {
                 if (item.comprobante_img) {
-                    const compUrl = `/uploads/comprobantes/${item.comprobante_img}`;
+                    const compUrl = item.comprobante_img.startsWith('data:') ? item.comprobante_img : `/uploads/comprobantes/${item.comprobante_img}`;
                     document.getElementById('adminComprobanteThumb').src = compUrl;
                     document.getElementById('adminComprobanteLink').href = compUrl;
                     boxComp.style.display = 'block';
