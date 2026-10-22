@@ -574,37 +574,64 @@ def api_apartar_publico():
 
 @app.route('/api/consultar_apartados', methods=['GET'])
 def api_consultar_apartados():
-    q = request.args.get('q', '').strip()
-    if not q:
-        return jsonify({'success': False, 'message': 'Indica tu número de teléfono o número de boleto.'}), 400
+    tel = request.args.get('telefono', '').strip()
+    num = request.args.get('numero', '').strip()
 
-    q_clean = re.sub(r'\D', '', q)
+    if not tel and not num:
+        return jsonify({'success': False, 'message': 'Por favor indica tu número de teléfono registrado.'}), 400
+
+    tel_clean = re.sub(r'\D', '', tel)
+    if not tel_clean or len(tel_clean) < 7:
+        return jsonify({'success': False, 'message': 'Por seguridad, ingresa tu número de teléfono completo (mínimo 7 dígitos) para verificar tu identidad.'}), 400
+
     conn = get_db()
-    rows = conn.execute("SELECT numero, numero_str, comprador_nombre, comprador_telefono, notas, fecha_registro FROM numeros WHERE estado = 'APARTADO' ORDER BY numero ASC").fetchall()
-    
     cfg = conn.execute("SELECT * FROM configuracion WHERE id = 1").fetchone()
     precio_usd = cfg['precio_usd'] if cfg else 5.0
     tasa_bcv = cfg['tasa_bcv'] if cfg else 45.0
-    conn.close()
 
-    coincidencias = []
-    for r in rows:
-        tel_db = re.sub(r'\D', '', r['comprador_telefono'] or '')
-        es_match = False
-        if q_clean and len(q_clean) >= 4 and q_clean in tel_db:
-            es_match = True
-        elif q == str(r['numero']) or q == r['numero_str']:
-            es_match = True
-        elif q.lower() in (r['comprador_nombre'] or '').lower():
-            es_match = True
+    if num:
+        try:
+            num_int = int(num)
+        except:
+            conn.close()
+            return jsonify({'success': False, 'message': 'Número de boleto inválido.'}), 400
 
-        if es_match:
-            coincidencias.append({
-                'numero': r['numero'],
-                'numero_str': r['numero_str'],
-                'comprador_nombre': r['comprador_nombre'],
-                'comprador_telefono': r['comprador_telefono']
-            })
+        row = conn.execute("SELECT numero, numero_str, comprador_nombre, comprador_telefono FROM numeros WHERE numero = ? AND estado = 'APARTADO'", (num_int,)).fetchone()
+        conn.close()
+
+        if not row:
+            return jsonify({'success': False, 'message': f'El boleto #{num} no está en estado apartado o no existe.'}), 404
+
+        row_tel_clean = re.sub(r'\D', '', row['comprador_telefono'] or '')
+        if len(row_tel_clean) < 7 or row_tel_clean[-7:] != tel_clean[-7:]:
+            return jsonify({
+                'success': False,
+                'message': f'El teléfono ingresado no coincide con el registrado al apartar el boleto #{row["numero_str"]}. Por seguridad no se puede acceder a este número.'
+            }), 403
+
+        coincidencias = [{
+            'numero': row['numero'],
+            'numero_str': row['numero_str'],
+            'comprador_nombre': row['comprador_nombre'],
+            'comprador_telefono': row['comprador_telefono']
+        }]
+    else:
+        rows = conn.execute("SELECT numero, numero_str, comprador_nombre, comprador_telefono FROM numeros WHERE estado = 'APARTADO' ORDER BY numero ASC").fetchall()
+        conn.close()
+
+        coincidencias = []
+        for r in rows:
+            row_tel = re.sub(r'\D', '', r['comprador_telefono'] or '')
+            if len(row_tel) >= 7 and row_tel[-7:] == tel_clean[-7:]:
+                coincidencias.append({
+                    'numero': r['numero'],
+                    'numero_str': r['numero_str'],
+                    'comprador_nombre': r['comprador_nombre'],
+                    'comprador_telefono': r['comprador_telefono']
+                })
+
+        if not coincidencias:
+            return jsonify({'success': False, 'message': 'No se encontraron boletos apartados con ese número de teléfono.'}), 404
 
     total_usd = len(coincidencias) * precio_usd
     total_bs = total_usd * tasa_bcv

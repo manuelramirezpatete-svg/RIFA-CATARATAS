@@ -1011,28 +1011,49 @@
 
             <div class="modal-body" id="pagarApartadoBody">
                 <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 14px;">
-                    Si apartaste boletos anteriormente, búscalos aquí con tu <strong>número de teléfono</strong> o <strong>número de boleto</strong> para adjuntar tu comprobante de pago:
+                    Por seguridad y para proteger cada boleto reservado, ingresa el <strong>número de WhatsApp o teléfono</strong> con el que apartaste tu número:
                 </p>
 
-                <!-- Buscador de Apartados -->
-                <div class="form-group" style="margin-bottom: 14px;">
-                    <label class="form-label">Tu Teléfono o Número de Boleto *</label>
-                    <div style="display: flex; gap: 8px;">
-                        <input type="text" id="inputBuscarApartado" class="form-input" placeholder="Ej: 0424653197 o 001" style="font-family: 'JetBrains Mono', monospace;" onkeydown="if(event.key==='Enter') buscarApartadosCliente()">
-                        <button type="button" class="btn-checkout" style="padding: 0 16px; font-size: 13px; white-space: nowrap;" onclick="buscarApartadosCliente()">
-                            🔍 Buscar
-                        </button>
+                <!-- Verificación de Titularidad y Búsqueda -->
+                <div id="boxVerificacionApartado" style="margin-bottom: 16px;">
+                    <div id="badgeBoletoSeleccionado" style="display: none; background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.4); border-radius: 8px; padding: 10px 14px; margin-bottom: 12px;">
+                        <span style="font-size: 11px; font-weight: 800; color: var(--accent-gold); text-transform: uppercase;">🔒 Boleto Reservado Seleccionado</span>
+                        <div style="display: flex; align-items: baseline; gap: 8px; margin-top: 2px;">
+                            <span style="font-size: 20px; font-weight: 900; color: #FFF; font-family: 'JetBrains Mono';" id="txtBoletoApartadoBadge">#000</span>
+                            <span style="font-size: 12px; color: var(--text-muted);">Comprueba que es tuyo ingresando tu teléfono abajo:</span>
+                        </div>
                     </div>
+
+                    <div class="form-group" style="margin-bottom: 10px;">
+                        <label class="form-label" style="display: flex; justify-content: space-between;">
+                            <span>📱 Tu Teléfono / WhatsApp registrado *</span>
+                            <span style="color: var(--accent-gold); font-size: 11px;">🔒 Verificación requerida</span>
+                        </label>
+                        <input type="tel" id="inputApartadoTelefono" class="form-input" placeholder="Ej: 0424-6531976" style="font-family: 'JetBrains Mono', monospace;" onkeydown="if(event.key==='Enter') buscarApartadosCliente()">
+                    </div>
+
+                    <div class="form-group" id="groupNumeroApartadoOpcional" style="margin-bottom: 12px;">
+                        <label class="form-label">Número de Boleto (Opcional si tienes varios)</label>
+                        <input type="text" id="inputApartadoNumero" class="form-input" placeholder="Ej: 003" style="font-family: 'JetBrains Mono', monospace;" onkeydown="if(event.key==='Enter') buscarApartadosCliente()">
+                    </div>
+
+                    <div id="alertErrorApartado" style="display: none; background: rgba(239, 68, 68, 0.15); border: 1px solid #EF4444; color: #FCA5A5; padding: 10px 12px; border-radius: 8px; font-size: 12.5px; line-height: 1.4; margin-bottom: 12px;"></div>
+
+                    <button type="button" class="btn-checkout" id="btnVerificarApartado" style="width: 100%; justify-content: center; font-size: 14px; padding: 12px;" onclick="buscarApartadosCliente()">
+                        <span>🔒</span> Verificar Titularidad y Cargar Pago
+                    </button>
                 </div>
 
-                <!-- Resultado de búsqueda -->
+                <!-- Resultado de búsqueda y Datos de Pago -->
                 <div id="resultadoApartadosBox" style="display: none;">
-                    <div style="background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.35); border-radius: 8px; padding: 12px; margin-bottom: 14px;">
-                        <div style="font-size: 12px; color: var(--accent-gold-light); font-weight: 700; margin-bottom: 4px;">
-                            🎟️ Boletos Encontrados a tu Nombre:
+                    <div style="background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.4); border-radius: 8px; padding: 12px; margin-bottom: 14px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                            <span style="font-size: 12px; color: #34D399; font-weight: 800;">✅ ¡Titular Verificado con Éxito!</span>
+                            <button type="button" onclick="reiniciarVerificacionApartado()" style="background: transparent; border: none; color: var(--text-muted); font-size: 11px; cursor: pointer; text-decoration: underline;">← Cambiar teléfono</button>
                         </div>
-                        <div id="apartadosTagsList" style="display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0;"></div>
-                        <div style="font-size: 13px; font-weight: 700; color: #FFFFFF;" id="apartadosTotalText"></div>
+                        <div style="font-size: 13px; font-weight: 700; color: #FFFFFF;" id="apartadoTitularNombre">👤 Titular: --</div>
+                        <div id="apartadosTagsList" style="display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0;"></div>
+                        <div style="font-size: 14px; font-weight: 800; color: #FCD34D;" id="apartadosTotalText"></div>
                     </div>
 
                     <!-- Datos de Pago Móvil -->
@@ -1413,23 +1434,57 @@
             setTimeout(() => { t.style.opacity = '0'; }, 2600);
         }
 
-        // --- Funcionalidad Pagar Número Apartado ---
+        // --- Funcionalidad Pagar Número Apartado Con Verificación de Seguridad ---
         let apartadosEncontrados = [];
         let archivoComprobanteApartado = null;
+        let telefonoVerificadoApartado = '';
 
         function abrirModalPagarApartado() {
             document.getElementById('pagarApartadoBody').style.display = 'block';
             document.getElementById('modalApartadoSuccessBox').style.display = 'none';
             document.getElementById('resultadoApartadosBox').style.display = 'none';
-            document.getElementById('inputBuscarApartado').value = '';
+            document.getElementById('boxVerificacionApartado').style.display = 'block';
+            document.getElementById('alertErrorApartado').style.display = 'none';
+
+            const badge = document.getElementById('badgeBoletoSeleccionado');
+            if (badge) badge.style.display = 'none';
+            const grpNum = document.getElementById('groupNumeroApartadoOpcional');
+            if (grpNum) grpNum.style.display = 'block';
+
+            document.getElementById('inputApartadoNumero').value = '';
+            document.getElementById('inputApartadoTelefono').value = '';
             removerArchivoApartado();
             document.getElementById('modalPagarApartado').style.display = 'flex';
+            setTimeout(() => { document.getElementById('inputApartadoTelefono').focus(); }, 120);
         }
 
         function abrirModalPagarApartadoConNumero(numStr) {
-            abrirModalPagarApartado();
-            document.getElementById('inputBuscarApartado').value = numStr;
-            buscarApartadosCliente();
+            document.getElementById('pagarApartadoBody').style.display = 'block';
+            document.getElementById('modalApartadoSuccessBox').style.display = 'none';
+            document.getElementById('resultadoApartadosBox').style.display = 'none';
+            document.getElementById('boxVerificacionApartado').style.display = 'block';
+            document.getElementById('alertErrorApartado').style.display = 'none';
+
+            // Mostrar el badge del número que se tocó
+            const badge = document.getElementById('badgeBoletoSeleccionado');
+            if (badge) badge.style.display = 'block';
+            const txtBadge = document.getElementById('txtBoletoApartadoBadge');
+            if (txtBadge) txtBadge.innerText = `#${numStr}`;
+
+            document.getElementById('inputApartadoNumero').value = numStr;
+            const grpNum = document.getElementById('groupNumeroApartadoOpcional');
+            if (grpNum) grpNum.style.display = 'none';
+
+            document.getElementById('inputApartadoTelefono').value = '';
+            removerArchivoApartado();
+            document.getElementById('modalPagarApartado').style.display = 'flex';
+            setTimeout(() => { document.getElementById('inputApartadoTelefono').focus(); }, 120);
+        }
+
+        function reiniciarVerificacionApartado() {
+            document.getElementById('resultadoApartadosBox').style.display = 'none';
+            document.getElementById('boxVerificacionApartado').style.display = 'block';
+            apartadosEncontrados = [];
         }
 
         function cerrarModalPagarApartado() {
@@ -1437,17 +1492,44 @@
         }
 
         async function buscarApartadosCliente() {
-            const q = (document.getElementById('inputBuscarApartado').value || '').trim();
-            if (!q) {
-                showToast("Ingresa tu teléfono o número de boleto.");
+            const tel = (document.getElementById('inputApartadoTelefono').value || '').trim();
+            const num = (document.getElementById('inputApartadoNumero').value || '').trim();
+            const errBox = document.getElementById('alertErrorApartado');
+            errBox.style.display = 'none';
+
+            if (!tel) {
+                showToast("Por favor ingresa tu número de teléfono / WhatsApp.");
+                document.getElementById('inputApartadoTelefono').focus();
                 return;
             }
 
+            const telLimpio = tel.replace(/\D/g, '');
+            if (telLimpio.length < 7) {
+                showToast("Por favor ingresa tu número completo (mínimo 7 dígitos).");
+                return;
+            }
+
+            const btn = document.getElementById('btnVerificarApartado');
+            btn.disabled = true;
+            btn.innerHTML = '<span>⏳</span> Verificando titularidad...';
+
             try {
-                const res = await fetch(`/api/consultar_apartados?q=${encodeURIComponent(q)}`);
+                let url = `/api/consultar_apartados?telefono=${encodeURIComponent(tel)}`;
+                if (num) {
+                    url += `&numero=${encodeURIComponent(num)}`;
+                }
+                const res = await fetch(url);
                 const d = await res.json();
+                btn.disabled = false;
+                btn.innerHTML = '<span>🔒</span> Verificar Titularidad y Cargar Pago';
+
                 if (d.success && d.coincidencias && d.coincidencias.length > 0) {
                     apartadosEncontrados = d.coincidencias;
+                    telefonoVerificadoApartado = tel;
+
+                    // Ocultar caja de verificación y mostrar formulario de pago
+                    document.getElementById('boxVerificacionApartado').style.display = 'none';
+
                     const containerTags = document.getElementById('apartadosTagsList');
                     containerTags.innerHTML = '';
                     apartadosEncontrados.forEach(item => {
@@ -1456,6 +1538,9 @@
                         tag.innerText = `#${item.numero_str}`;
                         containerTags.appendChild(tag);
                     });
+
+                    const nomTitular = apartadosEncontrados[0].comprador_nombre || 'Titular';
+                    document.getElementById('apartadoTitularNombre').innerText = `👤 Titular: ${nomTitular}`;
 
                     const totalBsFormatted = Number(d.total_bs).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                     document.getElementById('apartadosTotalText').innerText = `Total a Pagar: $${d.total_usd.toFixed(2)} USD (Bs. ${totalBsFormatted})`;
@@ -1467,12 +1552,16 @@
 
                     document.getElementById('resultadoApartadosBox').style.display = 'block';
                 } else {
-                    showToast("No se encontraron números apartados con esos datos.");
+                    errBox.innerHTML = `⚠️ <strong>Error de Verificación:</strong> ${d.message || 'No se encontraron boletos apartados con esos datos.'}`;
+                    errBox.style.display = 'block';
                     document.getElementById('resultadoApartadosBox').style.display = 'none';
                 }
             } catch(err) {
                 console.error(err);
-                showToast("Error al buscar boletos apartados.");
+                btn.disabled = false;
+                btn.innerHTML = '<span>🔒</span> Verificar Titularidad y Cargar Pago';
+                errBox.innerHTML = `⚠️ Error de conexión al verificar los datos. Inténtalo de nuevo.`;
+                errBox.style.display = 'block';
             }
         }
 
@@ -1502,7 +1591,7 @@
 
         async function procesarPagoApartado() {
             if (!apartadosEncontrados || apartadosEncontrados.length === 0) {
-                showToast("Primero busca y selecciona tus números apartados.");
+                showToast("Primero busca y verifica tus números apartados.");
                 return;
             }
 
@@ -1519,7 +1608,7 @@
             const numsList = apartadosEncontrados.map(x => x.numero).join(',');
             const fd = new FormData();
             fd.append('numeros', numsList);
-            fd.append('telefono', apartadosEncontrados[0].comprador_telefono || '');
+            fd.append('telefono', telefonoVerificadoApartado || apartadosEncontrados[0].comprador_telefono || '');
             fd.append('referencia', ref);
             fd.append('metodo_pago', 'Pago Móvil');
             if (archivoComprobanteApartado) {
