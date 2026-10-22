@@ -497,6 +497,10 @@
             animation: fadeIn 0.2s ease-out;
         }
 
+        .modal-overlay.active {
+            display: flex !important;
+        }
+
         @keyframes fadeIn {
             from { opacity: 0; }
             to { opacity: 1; }
@@ -1184,11 +1188,15 @@
             inputTasa.oninput = recalcularPreviewConfig;
             inputPrecio.oninput = recalcularPreviewConfig;
 
-            document.getElementById('modalConfig').classList.add('active');
+            const modal = document.getElementById('modalConfig');
+            modal.style.display = 'flex';
+            modal.classList.add('active');
         }
 
         function cerrarModalConfig() {
-            document.getElementById('modalConfig').classList.remove('active');
+            const modal = document.getElementById('modalConfig');
+            modal.style.display = 'none';
+            modal.classList.remove('active');
         }
 
         function recalcularPreviewConfig() {
